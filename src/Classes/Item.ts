@@ -1,19 +1,19 @@
 import Integer from "./Integer";
-import { ItemType } from "../types/";
+import { ItemEffect, ItemType } from "../types/";
 import { Cooldown } from "../types/";
 
 class Item {
-  name;
-  id;
-  code;
-  amount;
-  rarity;
-  cardType;
-  description;
-  target;
-  usage;
-  effects;
-  targetUser?;
+  name: string;
+  id: number;
+  code: string;
+  amount: number;
+  rarity: string;
+  cardType: string | Cooldown;
+  description: string;
+  target: string;
+  usage: string;
+  effects: Array<ItemEffect>;
+  targetUser?: string | object;
 
   constructor(props: ItemType) {
     const { name, id, amount, rarity, cardType, description, target, usage, effects } = props;
@@ -31,8 +31,12 @@ class Item {
     this.effects = effects;
   }
 
-  private isCooldown(obj: any): obj is Cooldown {
-    return "cooldown" in obj;
+  cardIsCooldown() {
+    return this.isCooldown(this);
+  }
+
+  isCooldown(obj: any = {}): obj is Cooldown {
+    return "cooldown" in obj ?? this;
   }
 
   use() {
