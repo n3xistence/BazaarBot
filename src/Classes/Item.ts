@@ -16,23 +16,13 @@ class Item {
   targetUser?;
 
   constructor(props: ItemType) {
-    const {
-      name,
-      id,
-      amount,
-      rarity,
-      cardType,
-      description,
-      target,
-      usage,
-      effects,
-    } = props;
+    const { name, id, amount, rarity, cardType, description, target, usage, effects } = props;
 
     this.name = name;
     this.id = id;
     this.code = `bz${new Integer(id).toBase36()}`;
     this.rarity = rarity;
-    this.amount = amount ? amount : 1;
+    this.amount = amount ?? 1;
     this.cardType = cardType;
     this.description = description;
     this.target = target;
@@ -46,8 +36,7 @@ class Item {
   }
 
   use() {
-    if (this.isCooldown(this.cardType) && this.cardType.cooldown?.current > 0)
-      return false;
+    if (this.isCooldown(this.cardType) && this.cardType.cooldown.current > 0) return false;
 
     this.resetCooldown();
     return true;

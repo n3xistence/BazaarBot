@@ -5,7 +5,7 @@
 // import fs from "node:fs";
 
 import { Client, GatewayIntentBits, Partials } from "discord.js";
-import { ready, interactionCreate } from "./listeners";
+import { ready, interactionCreate, messageCreate } from "./listeners";
 
 import * as dotenv from "dotenv";
 dotenv.config();
@@ -23,8 +23,19 @@ const client = new Client({
 
 const TOKEN = process.env.TOKEN;
 
+/**
+ * Discord Events
+ */
 ready(client);
-
 interactionCreate(client);
+messageCreate(client);
 
+/**
+ * Cron Jobs
+ */
+// TODO
+
+/**
+ * LOGIN
+ */
 client.login(TOKEN);

@@ -42,11 +42,7 @@ class Paginator {
    * @param baseString an optional string to be displayed on every page
    * @param options object containing paremeters for the embed
    */
-  listToEmbeds(
-    list: EmbedType[],
-    baseString: string,
-    options: embedOptions = {}
-  ) {
+  listToEmbeds(list: EmbedType[], baseString: string, options: embedOptions = {}) {
     if (!baseString) baseString = "";
     let embedStrings = [];
     for (let i = 0; i < list.length; i++) {
@@ -60,9 +56,7 @@ class Paginator {
     let embeds = [];
     for (let i = 0; i < embedStrings.length; i++) {
       let embed = new EmbedBuilder()
-        .setColor(
-          (options.color as ColorResolvable) ?? ("Green" as ColorResolvable)
-        )
+        .setColor((options.color as ColorResolvable) ?? ("Green" as ColorResolvable))
         // .setThumbnail(interaction.user.displayAvatarURL())
         .setTitle(options.title ?? "Title")
         .setDescription(`${baseString}\n\n${embedStrings[i]}`)
@@ -88,10 +82,7 @@ class Paginator {
         .setStyle(ButtonStyle.Primary)
         .setEmoji("⬅️")
         .setDisabled(counter === 0),
-      new ButtonBuilder()
-        .setCustomId("end")
-        .setStyle(ButtonStyle.Primary)
-        .setEmoji("⏹️"),
+      new ButtonBuilder().setCustomId("end").setStyle(ButtonStyle.Primary).setEmoji("⏹️"),
       new ButtonBuilder()
         .setCustomId("forward")
         .setStyle(ButtonStyle.Primary)
@@ -151,10 +142,7 @@ class Paginator {
             })
             .catch(() => {});
         }
-        if (
-          pagInter.customId === "forward" &&
-          counter + 1 < this.embeds.length
-        ) {
+        if (pagInter.customId === "forward" && counter + 1 < this.embeds.length) {
           counter++;
           pagInter
             .update({
@@ -173,9 +161,7 @@ class Paginator {
             .catch(() => {});
         }
         if (pagInter.customId === "end") {
-          pagInter
-            .update({ embeds: [this.embeds[counter]], components: [] })
-            .catch(() => {});
+          pagInter.update({ embeds: [this.embeds[counter]], components: [] }).catch(() => {});
           client.off("interactionCreate", listener);
         }
       };
@@ -191,26 +177,13 @@ class Paginator {
 
   bazaarPaginationRow(title: string) {
     return new ActionRowBuilder().addComponents(
-      new ButtonBuilder()
-        .setCustomId("back")
-        .setStyle(ButtonStyle.Primary)
-        .setEmoji("⬅️"),
-      new ButtonBuilder()
-        .setCustomId("switch")
-        .setStyle(ButtonStyle.Secondary)
-        .setLabel(title),
-      new ButtonBuilder()
-        .setCustomId("forward")
-        .setStyle(ButtonStyle.Primary)
-        .setEmoji("➡️")
+      new ButtonBuilder().setCustomId("back").setStyle(ButtonStyle.Primary).setEmoji("⬅️"),
+      new ButtonBuilder().setCustomId("switch").setStyle(ButtonStyle.Secondary).setLabel(title),
+      new ButtonBuilder().setCustomId("forward").setStyle(ButtonStyle.Primary).setEmoji("➡️")
     );
   }
 
-  async bazaarPaginate(
-    options: any,
-    list1: EmbedBuilder[],
-    list2: EmbedBuilder[]
-  ) {
+  async bazaarPaginate(options: any, list1: EmbedBuilder[], list2: EmbedBuilder[]) {
     const { client, interaction } = options;
 
     let currentList = list1;
