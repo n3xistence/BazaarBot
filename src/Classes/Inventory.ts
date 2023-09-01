@@ -1,6 +1,6 @@
 import Item from "./Item";
 import Pack from "./Pack";
-import Cooldown from "../types/Cooldown";
+import { Cooldown } from "../types/";
 
 class Inventory {
   activeItems: Item[] = [];

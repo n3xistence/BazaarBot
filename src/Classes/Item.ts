@@ -1,6 +1,6 @@
 import Integer from "./Integer";
-import ItemType from "../types/Item";
-import Cooldown from "../types/Cooldown";
+import { ItemType } from "../types/";
+import { Cooldown } from "../types/";
 
 class Item {
   name;

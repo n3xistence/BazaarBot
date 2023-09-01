@@ -1,4 +1,4 @@
-import EmbedType from "../types/EmbedType";
+import { EmbedType } from "../types/";
 import {
   ChatInputCommandInteraction,
   ColorResolvable,
