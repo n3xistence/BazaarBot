@@ -1,12 +1,18 @@
 import CommandOptions from "../types/CommandOptions";
-import { SlashCommandBuilder, EmbedBuilder } from "discord.js";
+import { Client, EmbedBuilder, CommandInteraction } from "discord.js";
+import { Command } from "./Command";
+const { version } = require("../../package.json");
 
-module.exports = {
-  data: new SlashCommandBuilder()
-    .setName("info")
-    .setDescription("displays information about the server"),
-  async execute({ interaction, version, db }: CommandOptions) {
-    let link_data = db.prepare(`SELECT * FROM links`).all();
+export const info: Command = {
+  name: "info",
+  description: "Shows info",
+  async execute(client: Client, interaction: CommandInteraction) {
+    if (!interaction.guild)
+      return interaction.reply({
+        content: "Invalid Request.",
+        ephemeral: true,
+      });
+
     let owner = await interaction.guild.fetchOwner();
 
     let created = Math.floor(
@@ -15,7 +21,7 @@ module.exports = {
 
     let sEmbed = new EmbedBuilder()
       .setColor("Blue")
-      .setThumbnail(interaction.guild.iconURL())
+      .setThumbnail(client.user?.avatarURL() as string)
       .setTitle(`${interaction.guild.name} Server Info`)
       .addFields(
         {
@@ -27,11 +33,6 @@ module.exports = {
         {
           name: "**Member Count**",
           value: `${interaction.guild.memberCount}`,
-          inline: true,
-        },
-        {
-          name: "**Linked Users**",
-          value: `${link_data.length}`,
           inline: true,
         },
         {

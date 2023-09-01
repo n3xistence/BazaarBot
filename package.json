@@ -1,8 +1,8 @@
 {
-  "name": "bazaarbot",
-  "version": "0.0.1",
+  "name": "bazaar_bot",
+  "version": "0.1.0",
   "description": "",
-  "main": "dist/index.js",
+  "main": "dist/main.js",
   "scripts": {
     "comp": "tsc && node ."
   },
