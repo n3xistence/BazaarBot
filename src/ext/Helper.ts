@@ -9,17 +9,16 @@ import {
   CommandInteraction,
   EmbedBuilder,
   ModalBuilder,
-  ModalSubmitInteraction,
   TextInputBuilder,
   TextInputStyle,
 } from "discord.js";
 import fs from "node:fs";
 
 const isCooldown = (obj: any = {}): obj is Cooldown => {
-  return "cooldown" in obj;
+  return typeof obj === "object" && "cooldown" in obj;
 };
 
-const wrapInColor = (color: string, str: string) => {
+const wrapInColor = (color: string, str: string): string => {
   const resetColor = "\x1b[0m";
 
   let clr;
@@ -30,6 +29,12 @@ const wrapInColor = (color: string, str: string) => {
     case "green":
       clr = "\x1b[32m";
       break;
+    case "red":
+      clr = "\x1b[31m";
+      break;
+    case "yellow":
+      clr = `\x1b[33m`;
+      break;
     default:
       clr = "\x1b[0m";
       break;
@@ -37,9 +42,9 @@ const wrapInColor = (color: string, str: string) => {
   return `${clr}${str}${resetColor}`;
 };
 
-const randomPick = (array: Array<any>): any => array[Math.floor(Math.random() * array.length)];
+const getUNIXStamp = () => Math.floor(new Date().getTime() / 1000);
 
-// TODO
+const randomPick = (array: Array<any>): any => array[Math.floor(Math.random() * array.length)];
 
 const handleToggleCard = (card: Item, db: any, interaction: CommandInteraction) => {
   if (!(card instanceof Item)) throw Error("Invalid Argument: Must be an instance of Item.");
@@ -236,20 +241,13 @@ const updateTotalEXP = (
 };
 
 const addScrap = (user: any, db: any, amount: number) => {
-  const currentScrap = db.prepare(`SELECT * FROM points WHERE id=?`).get(user.id);
+  const currentScrap = db.prepare(`SELECT * FROM currency WHERE id=?`).get(user.id);
 
   if (currentScrap) {
     let newTotal = parseInt(currentScrap.scrap) + amount;
-    db.prepare(`UPDATE points SET scrap=? WHERE id=?`).run(newTotal, user.id);
+    db.prepare(`UPDATE currency SET scrap=? WHERE id=?`).run(newTotal, user.id);
   } else {
-    db.prepare(`INSERT INTO points VALUES(?,?,?,?,?,?)`).run(
-      user.id,
-      user.username,
-      0,
-      0,
-      0,
-      amount
-    );
+    db.prepare(`INSERT INTO currency VALUES(?,?,?,?)`).run(user.id, 0, 0, amount);
   }
 };
 
@@ -290,10 +288,10 @@ const getProgressBar = (val: number, total: number = 100) => {
 const bz_getHealth = (inv: Inventory, level: number) => {
   let allItems = [...inv.getActiveItems(), ...inv.getItems()];
   let uniqueItems = {
-    common: allItems.filter((e) => e.rarity === "Common"),
-    rare: allItems.filter((e) => e.rarity === "Rare"),
-    legendary: allItems.filter((e) => e.rarity === "Legendary"),
-    celestial: allItems.filter((e) => e.rarity === "Celestial"),
+    common: allItems.filter((e) => e.rarity.toLowerCase() === "common"),
+    rare: allItems.filter((e) => e.rarity.toLowerCase() === "rare"),
+    legendary: allItems.filter((e) => e.rarity.toLowerCase() === "legendary"),
+    celestial: allItems.filter((e) => e.rarity.toLowerCase() === "celestial"),
   };
 
   let totals = {
@@ -317,10 +315,10 @@ const bz_getHealth = (inv: Inventory, level: number) => {
 const bz_getDamage = (inv: Inventory, level: number) => {
   let allItems = [...inv.getActiveItems(), ...inv.getItems()];
   let uniqueItems = {
-    common: allItems.filter((e) => e.rarity === "Common"),
-    rare: allItems.filter((e) => e.rarity === "Rare"),
-    legendary: allItems.filter((e) => e.rarity === "Legendary"),
-    celestial: allItems.filter((e) => e.rarity === "Celestial"),
+    common: allItems.filter((e) => e.rarity.toLowerCase() === "common"),
+    rare: allItems.filter((e) => e.rarity.toLowerCase() === "rare"),
+    legendary: allItems.filter((e) => e.rarity.toLowerCase() === "legendary"),
+    celestial: allItems.filter((e) => e.rarity.toLowerCase() === "celestial"),
   };
 
   let totals = {
@@ -547,8 +545,6 @@ const updatePackProperties = (inventories: Array<any>, pack: Pack, { global = tr
   }
 };
 
-// TODO
-
 const emoteApprove = "<:BB_Check:1031690264089202698>";
 const emoteDeny = "<:BB_Cross:1031690265334911086>";
 const emoteBlank = "<:blank:1019977634249187368>";
@@ -583,6 +579,8 @@ const emoteHeart = "<:BB_Heart:1141096928747208795>";
 
 export {
   wrapInColor,
+  getUNIXStamp,
+  isCooldown,
   randomPick,
   handleToggleCard,
   handleCustomCardUsage,

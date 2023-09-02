@@ -1,31 +1,15 @@
-import { EmbedType } from "../types/";
 import {
-  ChatInputCommandInteraction,
   ColorResolvable,
   EmbedBuilder,
   ActionRowBuilder,
   ButtonBuilder,
   ButtonStyle,
 } from "discord.js";
-
-declare global {
-  interface Number {
-    mod: (n: number) => {};
-  }
-}
-Number.prototype.mod = function (n: number) {
-  return (((this as number) % n) + n) % n;
-};
+import { PaginationOption } from "../types/PaginationOption";
 
 type embedOptions = {
   title?: string;
   color?: string;
-};
-
-type PaginationOption = {
-  client: any;
-  interaction: any;
-  ephemeral: boolean;
 };
 
 class Paginator {
@@ -42,7 +26,7 @@ class Paginator {
    * @param baseString an optional string to be displayed on every page
    * @param options object containing paremeters for the embed
    */
-  listToEmbeds(list: EmbedType[], baseString: string, options: embedOptions = {}) {
+  listToEmbeds(list: string[], baseString: string | null, options: embedOptions = {}) {
     if (!baseString) baseString = "";
     let embedStrings = [];
     for (let i = 0; i < list.length; i++) {
@@ -102,77 +86,74 @@ class Paginator {
    * @param options options necessary for the pagination. Interaction and Client are necessary
    * @returns
    */
-  async paginate(options: PaginationOption) {
-    const { client, interaction, ephemeral } = options;
-
-    if (this.embeds.length === 1) {
+  async paginate({ client, interaction, ephemeral }: PaginationOption) {
+    if (this.embeds.length === 1)
       return interaction.reply({
         embeds: [this.embeds[0]],
         ephemeral: ephemeral,
       });
-    } else {
-      let msg = await interaction.reply({
-        embeds: [this.embeds[0]],
-        components: [this.returnPaginationRow(0)],
-        fetchReply: true,
-        ephemeral: ephemeral,
-      });
 
-      let counter = 0;
-      const listener = async (pagInter: any) => {
-        if (!pagInter.message) return;
-        if (pagInter.user.id !== interaction.user.id) return;
-        if (pagInter.message.id !== msg.id) return;
+    let msg = await interaction.reply({
+      embeds: [this.embeds[0]],
+      components: [this.returnPaginationRow(0)],
+      fetchReply: true,
+      ephemeral: ephemeral,
+    });
 
-        if (pagInter.customId === "back_all") {
-          counter = 0;
-          pagInter
-            .update({
-              embeds: [this.embeds[counter]],
-              components: [this.returnPaginationRow(counter)],
-            })
-            .catch(() => {});
-        }
-        if (pagInter.customId === "back" && counter - 1 >= 0) {
-          counter--;
-          pagInter
-            .update({
-              embeds: [this.embeds[counter]],
-              components: [this.returnPaginationRow(counter)],
-            })
-            .catch(() => {});
-        }
-        if (pagInter.customId === "forward" && counter + 1 < this.embeds.length) {
-          counter++;
-          pagInter
-            .update({
-              embeds: [this.embeds[counter]],
-              components: [this.returnPaginationRow(counter)],
-            })
-            .catch(() => {});
-        }
-        if (pagInter.customId === "forward_all") {
-          counter = this.embeds.length - 1;
-          pagInter
-            .update({
-              embeds: [this.embeds[counter]],
-              components: [this.returnPaginationRow(counter)],
-            })
-            .catch(() => {});
-        }
-        if (pagInter.customId === "end") {
-          pagInter.update({ embeds: [this.embeds[counter]], components: [] }).catch(() => {});
-          client.off("interactionCreate", listener);
-        }
-      };
+    let counter = 0;
+    const listener = async (pagInter: any) => {
+      if (!pagInter.message) return;
+      if (pagInter.user.id !== interaction.user.id) return;
+      if (pagInter.message.id !== msg.id) return;
 
-      client.on("interactionCreate", listener);
-      setTimeout(() => {
-        try {
-          client.off("interactionCreate", listener);
-        } catch {}
-      }, 120000);
-    }
+      if (pagInter.customId === "back_all") {
+        counter = 0;
+        pagInter
+          .update({
+            embeds: [this.embeds[counter]],
+            components: [this.returnPaginationRow(counter)],
+          })
+          .catch(() => {});
+      }
+      if (pagInter.customId === "back" && counter - 1 >= 0) {
+        counter--;
+        pagInter
+          .update({
+            embeds: [this.embeds[counter]],
+            components: [this.returnPaginationRow(counter)],
+          })
+          .catch(() => {});
+      }
+      if (pagInter.customId === "forward" && counter + 1 < this.embeds.length) {
+        counter++;
+        pagInter
+          .update({
+            embeds: [this.embeds[counter]],
+            components: [this.returnPaginationRow(counter)],
+          })
+          .catch(() => {});
+      }
+      if (pagInter.customId === "forward_all") {
+        counter = this.embeds.length - 1;
+        pagInter
+          .update({
+            embeds: [this.embeds[counter]],
+            components: [this.returnPaginationRow(counter)],
+          })
+          .catch(() => {});
+      }
+      if (pagInter.customId === "end") {
+        pagInter.update({ embeds: [this.embeds[counter]], components: [] }).catch(() => {});
+        client.off("interactionCreate", listener);
+      }
+    };
+
+    client.on("interactionCreate", listener);
+    setTimeout(() => {
+      try {
+        client.off("interactionCreate", listener);
+      } catch {}
+    }, 120000);
   }
 
   bazaarPaginationRow(title: string) {
@@ -187,7 +168,7 @@ class Paginator {
     const { client, interaction } = options;
 
     let currentList = list1;
-    let label = currentList === list1 ? "collectors" : "stats";
+    let label = currentList === list2 ? "collectors" : "stats";
 
     let msg = await interaction.editReply({
       embeds: [currentList[0]],

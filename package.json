@@ -1,5 +1,6 @@
 {
   "name": "bazaar_bot",
+  "prefix": "+",
   "version": "0.1.0",
   "description": "",
   "main": "dist/main.js",
@@ -24,6 +25,7 @@
     "read-excel-file": "^5.6.1"
   },
   "devDependencies": {
+    "@types/better-sqlite3": "^7.6.4",
     "@types/decompress": "^4.2.4",
     "@types/node-cron": "^3.0.8"
   }

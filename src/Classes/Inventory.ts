@@ -12,7 +12,7 @@ class Inventory {
   }
 
   private isCooldown(obj: any): obj is Cooldown {
-    return "cooldown" in obj;
+    return typeof obj === "object" && "cooldown" in obj;
   }
 
   getItems() {
@@ -48,7 +48,7 @@ class Inventory {
   addPack(pack: Pack) {
     const found = this.packs.find((e) => e.name === pack.name);
 
-    if (found) found.amount += pack.amount ? pack.amount : 1;
+    if (found && found.amount) found.amount += pack.amount ? pack.amount : 1;
     else this.packs.push(pack);
   }
 
@@ -56,7 +56,7 @@ class Inventory {
     const found = this.packs.find((e) => e.name === pack.name);
     if (!found) return;
 
-    if (found.amount > 1) found.amount -= 1;
+    if (found.amount && found.amount > 1) found.amount -= 1;
     else
       this.packs.splice(
         this.packs.findIndex((e) => e.code === pack.code),
@@ -172,7 +172,7 @@ class Inventory {
   getPackAmount() {
     let totalPacks = 0;
     for (const pack of this.packs) {
-      totalPacks += pack.amount;
+      totalPacks += pack.amount ?? 1;
     }
 
     return totalPacks;

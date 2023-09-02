@@ -23,6 +23,15 @@ const client = new Client({
 
 const TOKEN = process.env.TOKEN;
 
+declare global {
+  interface Number {
+    mod: (n: number) => {};
+  }
+}
+Number.prototype.mod = function (n: number) {
+  return (((this as number) % n) + n) % n;
+};
+
 /**
  * Discord Events
  */

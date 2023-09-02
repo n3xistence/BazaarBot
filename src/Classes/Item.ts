@@ -36,7 +36,7 @@ class Item {
   }
 
   isCooldown(obj: any = {}): obj is Cooldown {
-    return "cooldown" in obj ?? this;
+    return typeof obj === "object" && "cooldown" in obj;
   }
 
   use() {

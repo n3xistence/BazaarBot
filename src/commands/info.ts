@@ -1,4 +1,3 @@
-import CommandOptions from "../types/CommandOptions";
 import { Client, EmbedBuilder, CommandInteraction } from "discord.js";
 import { Command } from "./ICommand";
 const { version } = require("../../package.json");
