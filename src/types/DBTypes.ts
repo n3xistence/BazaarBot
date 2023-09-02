@@ -23,6 +23,8 @@ export type Bazaar = {
   chosen_winners: string;
   active_cards: string;
   messageID: string;
+  description: string;
+  type: string;
   notes: string;
   // TODO
   // Add guild_id

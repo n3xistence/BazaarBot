@@ -5,6 +5,9 @@ import Item from "../Classes/Item";
 import * as ch from "../Classes/CardHandler";
 import {
   ActionRowBuilder,
+  ButtonBuilder,
+  ButtonInteraction,
+  ButtonStyle,
   Client,
   CommandInteraction,
   EmbedBuilder,
@@ -545,6 +548,76 @@ const updatePackProperties = (inventories: Array<any>, pack: Pack, { global = tr
   }
 };
 
+const confirm = async (
+  interaction: CommandInteraction | ButtonInteraction,
+  client: Client,
+  { ephemeral = false, message = "", embeds = [] }: any
+) => {
+  const confirmationRow: any = new ActionRowBuilder().addComponents(
+    new ButtonBuilder()
+      .setCustomId("confirm_approve")
+      .setStyle(ButtonStyle.Success)
+      .setEmoji("<:BB_Check:1031690264089202698>"),
+    new ButtonBuilder()
+      .setCustomId("confirm_deny")
+      .setStyle(ButtonStyle.Danger)
+      .setEmoji("<:BB_Cross:1031690265334911086>")
+  );
+
+  const interactionMessage = interaction.replied
+    ? message.length === 0
+      ? await interaction.editReply({
+          embeds: embeds,
+          components: [confirmationRow],
+        })
+      : await interaction.editReply({
+          content: message,
+          embeds: embeds,
+          components: [confirmationRow],
+        })
+    : message.length === 0
+    ? await interaction.reply({
+        embeds: embeds,
+        ephemeral: ephemeral,
+        components: [confirmationRow],
+        fetchReply: true,
+      })
+    : await interaction.reply({
+        content: message,
+        embeds: embeds,
+        ephemeral: ephemeral,
+        components: [confirmationRow],
+        fetchReply: true,
+      });
+
+  const filter = (confInt: any) => {
+    confInt.deferUpdate();
+    return (
+      confInt.message &&
+      confInt.user.id === interaction.user.id &&
+      confInt.message.id === interactionMessage.id
+    );
+  };
+  if (!interaction.channel) return;
+
+  const collector: any = interaction.channel.createMessageComponentCollector({
+    filter,
+    time: 30000, // 30 seconds
+    max: 1, // Only collect 1 interaction
+  });
+
+  return new Promise((resolve) => {
+    collector.on("end", (collected: any) => {
+      if (collected.size === 0) {
+        resolve(false);
+      } else {
+        const interaction = collected.first();
+        resolve(interaction.customId === "confirm_approve");
+      }
+    });
+  });
+};
+
 const emoteApprove = "<:BB_Check:1031690264089202698>";
 const emoteDeny = "<:BB_Cross:1031690265334911086>";
 const emoteBlank = "<:blank:1019977634249187368>";
@@ -581,6 +654,7 @@ export {
   wrapInColor,
   getUNIXStamp,
   isCooldown,
+  confirm,
   randomPick,
   handleToggleCard,
   handleCustomCardUsage,

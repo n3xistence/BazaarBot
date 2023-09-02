@@ -1,9 +1,3 @@
-// import decompress from "decompress";
-// import cron from "node-cron";
-// import path from "node:path";
-// import axios from "axios";
-// import fs from "node:fs";
-
 import { Client, GatewayIntentBits, Partials } from "discord.js";
 import { ready, interactionCreate, messageCreate } from "./listeners";
 
