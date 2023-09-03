@@ -1,5 +1,7 @@
 import { Client, GatewayIntentBits, Partials } from "discord.js";
 import { ready, interactionCreate, messageCreate } from "./listeners";
+import * as Jobs from "./cronjobs/";
+import cron from "node-cron";
 
 import * as dotenv from "dotenv";
 dotenv.config();
@@ -22,6 +24,7 @@ declare global {
     mod: (n: number) => {};
   }
 }
+
 Number.prototype.mod = function (n: number) {
   return (((this as number) % n) + n) % n;
 };
@@ -36,7 +39,13 @@ messageCreate(client);
 /**
  * Cron Jobs
  */
-// TODO
+cron.schedule("*/5 * * * *", Jobs.UpdateBazaarEnergy, {
+  timezone: "Europe/London",
+});
+
+cron.schedule("00 13 * * *", Jobs.UpdateCooldown, {
+  timezone: "Europe/London",
+});
 
 /**
  * LOGIN
