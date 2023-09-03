@@ -29,7 +29,7 @@ const handleCard23 = (card: Item, db: any, interaction: CommandInteraction) => {
   const baseReward = 3;
 
   const inv = helper.getInventoryAsObject(interaction.user.id);
-  if ((card.cardType as Cooldown).cooldown.current > 0) return { error: true };
+  if ((card.cardType as Cooldown).cooldown?.current > 0) return { error: true };
 
   let points = db.prepare(`SELECT * FROM currency WHERE id=?`).get(interaction.user.id);
 
@@ -137,7 +137,7 @@ const handleCard29 = (card: Item, db: any, interaction: CommandInteraction) => {
   const baseValue = 7;
 
   const inv = helper.getInventoryAsObject(interaction.user.id);
-  if ((card.cardType as Cooldown).cooldown.current > 0) return { error: true };
+  if ((card.cardType as Cooldown).cooldown?.current > 0) return { error: true };
 
   let points = db.prepare(`SELECT * FROM currency WHERE id=?`).get(interaction.user.id);
 
@@ -168,7 +168,7 @@ const handleCard30 = async (
 ) => {
   const inv = helper.getInventoryAsObject(interaction.user.id);
 
-  if ((card.cardType as Cooldown).cooldown.current > 0)
+  if ((card.cardType as Cooldown).cooldown?.current > 0)
     return interaction.reply({
       content: `Could not use card \`${
         card.name
@@ -232,7 +232,7 @@ const handleCard31 = (card: Item, db: any, interaction: CommandInteraction) => {
 const handleCard32 = (card: Item, db: any, interaction: CommandInteraction) => {
   const scrapCost = 3;
 
-  if ((card.cardType as Cooldown).cooldown.current > 0)
+  if ((card.cardType as Cooldown).cooldown?.current > 0)
     return interaction.reply({
       content: `Could not use card \`${
         card.name
@@ -267,7 +267,7 @@ const handleCard32 = (card: Item, db: any, interaction: CommandInteraction) => {
   let newBalance = scrap - scrapCost;
   db.prepare(`UPDATE currency SET scrap=? WHERE id=?`).run(newBalance, interaction.user.id);
 
-  if ((card.cardType as Cooldown).cooldown.current > 0)
+  if ((card.cardType as Cooldown).cooldown?.current > 0)
     return interaction.reply({
       content: `Could not use card \`${
         card.name
@@ -335,7 +335,7 @@ const handleCard33 = (card: Item, db: any, interaction: CommandInteraction) => {
   const expAmount = 10;
 
   const inv = helper.getInventoryAsObject(interaction.user.id);
-  if ((card.cardType as Cooldown).cooldown.current > 0)
+  if ((card.cardType as Cooldown).cooldown?.current > 0)
     return interaction.reply({
       content: `Could not use card \`${
         card.name
@@ -400,7 +400,7 @@ const handleCard33 = (card: Item, db: any, interaction: CommandInteraction) => {
 const handleCard34 = (card: Item, db: any, interaction: CommandInteraction) => {
   const inv = helper.getInventoryAsObject(interaction.user.id);
 
-  if ((card.cardType as Cooldown).cooldown.current > 0)
+  if ((card.cardType as Cooldown).cooldown?.current > 0)
     return interaction.reply({
       content: `Could not use card \`${
         card.name
@@ -637,7 +637,7 @@ const toggleCard40 = (card: Item, db: any, interaction: CommandInteraction) => {
 const handleCard44 = (card: Item, db: any, interaction: CommandInteraction) => {
   const cap = 10;
 
-  if ((card.cardType as Cooldown).cooldown.current > 0) return { error: true };
+  if ((card.cardType as Cooldown).cooldown?.current > 0) return { error: true };
 
   const inv = helper.getInventoryAsObject(interaction.user.id);
 
@@ -702,7 +702,7 @@ const handleCard46 = async (
       content: `You do not own the card \`${cardName}\`.`,
     });
 
-  if ((card.cardType as Cooldown).cooldown.current > 0)
+  if ((card.cardType as Cooldown).cooldown?.current > 0)
     return interaction.reply({
       content: `Could not use card \`${
         card.name
