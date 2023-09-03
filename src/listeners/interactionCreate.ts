@@ -12,21 +12,6 @@ import Logger from "../ext/Logger";
 
 export default (client: Client): void => {
   client.on("interactionCreate", async (interaction: Interaction) => {
-    switch (true) {
-      case interaction.isCommand():
-        console.log("is command");
-        break;
-      case interaction.isButton():
-        console.log("is button");
-        break;
-      case interaction.isModalSubmit():
-        console.log("is modal");
-        break;
-      default:
-        console.log("is neither");
-        break;
-    }
-
     if (interaction.isCommand()) {
       Logger.log(
         "info",
@@ -84,7 +69,6 @@ const handleModalSubmit = async (
   interaction: ModalSubmitInteraction
 ): Promise<any> => {
   const modal = Modals.find((c) => c.modalId === interaction.customId);
-  console.log(modal);
   if (!modal) return;
 
   modal.execute(client, interaction);
