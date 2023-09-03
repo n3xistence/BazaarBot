@@ -1,38 +1,28 @@
 import Integer from "./Integer";
-import { ItemType } from "../types/";
+import { ItemEffect, ItemType } from "../types/";
 import { Cooldown } from "../types/";
 
 class Item {
-  name;
-  id;
-  code;
-  amount;
-  rarity;
-  cardType;
-  description;
-  target;
-  usage;
-  effects;
-  targetUser?;
+  name: string;
+  id: number;
+  code: string;
+  amount: number;
+  rarity: string;
+  cardType: string | Cooldown;
+  description: string;
+  target: string;
+  usage: string;
+  effects: Array<ItemEffect>;
+  targetUser?: string | object;
 
   constructor(props: ItemType) {
-    const {
-      name,
-      id,
-      amount,
-      rarity,
-      cardType,
-      description,
-      target,
-      usage,
-      effects,
-    } = props;
+    const { name, id, amount, rarity, cardType, description, target, usage, effects } = props;
 
     this.name = name;
     this.id = id;
     this.code = `bz${new Integer(id).toBase36()}`;
     this.rarity = rarity;
-    this.amount = amount ? amount : 1;
+    this.amount = amount ?? 1;
     this.cardType = cardType;
     this.description = description;
     this.target = target;
@@ -41,13 +31,16 @@ class Item {
     this.effects = effects;
   }
 
-  private isCooldown(obj: any): obj is Cooldown {
-    return "cooldown" in obj;
+  cardIsCooldown() {
+    return this.isCooldown(this);
+  }
+
+  isCooldown(obj: any = {}): obj is Cooldown {
+    return typeof obj === "object" && "cooldown" in obj;
   }
 
   use() {
-    if (this.isCooldown(this.cardType) && this.cardType.cooldown?.current > 0)
-      return false;
+    if (this.isCooldown(this.cardType) && this.cardType.cooldown.current > 0) return false;
 
     this.resetCooldown();
     return true;

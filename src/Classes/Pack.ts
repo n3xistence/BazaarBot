@@ -1,4 +1,4 @@
-import { ItemType } from "../types/";
+import Item from "../Classes/Item";
 
 type Pack = {
   name: string;
@@ -13,8 +13,8 @@ type Pack = {
     gems: string;
     scrap: string;
   };
-  items: ItemType[];
-  amount: number;
+  items: Item[];
+  amount?: number;
 };
 
 export default Pack;

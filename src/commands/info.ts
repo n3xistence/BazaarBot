@@ -1,6 +1,5 @@
-import CommandOptions from "../types/CommandOptions";
 import { Client, EmbedBuilder, CommandInteraction } from "discord.js";
-import { Command } from "./Command";
+import { Command } from "./ICommand";
 const { version } = require("../../package.json");
 
 export const info: Command = {
@@ -15,9 +14,7 @@ export const info: Command = {
 
     let owner = await interaction.guild.fetchOwner();
 
-    let created = Math.floor(
-      new Date(interaction.guild.createdAt).getTime() / 1000
-    );
+    let created = Math.floor(new Date(interaction.guild.createdAt).getTime() / 1000);
 
     let sEmbed = new EmbedBuilder()
       .setColor("Blue")
