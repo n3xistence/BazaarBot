@@ -2,14 +2,15 @@ import { ButtonInteraction, Client, ColorResolvable, EmbedBuilder } from "discor
 import fs from "fs";
 import sql from "better-sqlite3";
 import * as helper from "../ext/Helper";
+import Item from "../Classes/Item";
 
 const getAllActiveItems = (data: any, type: string) => {
-  let activeItems = [];
+  let activeItems: Array<Item> = [];
 
   for (const entry of data) {
     let inv = entry.inventory.activeItems;
 
-    let items = [];
+    let items: Array<Item> = [];
     for (const item of inv) {
       if (!item.effects.find((e: any) => e.category === type)) continue;
 
@@ -93,7 +94,7 @@ const handleTaskEnd = async (db: any, interaction: any, client: Client) => {
     }
   }
 
-  let winners = [];
+  let winners: any = [];
   for (let winnerID of winnerIDs) {
     let winner = await interaction.guild.members.fetch(winnerID);
     winners.push(winner);
@@ -103,9 +104,9 @@ const handleTaskEnd = async (db: any, interaction: any, client: Client) => {
 
   let activeItems = getAllActiveItems(inventories, activeTask.type);
 
-  let winnerNotices = [];
+  let winnerNotices: Array<string> = [];
   for (let winner of winners) {
-    const runestoneInPlay: any = activeItems.find((e) => e.id === 30) !== undefined;
+    const runestoneInPlay: any = activeItems.find((e: any) => e.id === 30) !== undefined;
     const hasRunestoneCard = runestoneInPlay && runestoneInPlay.targetUser.id === winner.id;
 
     let modifier = getApplicableEffects(
