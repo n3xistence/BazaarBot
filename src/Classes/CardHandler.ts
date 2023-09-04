@@ -29,6 +29,13 @@ const handleCard23 = (card: Item, db: any, interaction: CommandInteraction) => {
   const baseReward = 3;
 
   const inv = helper.getInventoryAsObject(interaction.user.id);
+  const foundCard = inv.getItems().find((e) => e.id === card.id);
+  if (!foundCard)
+    return interaction.reply({
+      content: `You do not own the card \`${card.name}\`.`,
+    });
+  card = foundCard;
+
   if ((card.cardType as Cooldown).cooldown?.current > 0) return { error: true };
 
   let points = db.prepare(`SELECT * FROM currency WHERE id=?`).get(interaction.user.id);
@@ -54,6 +61,13 @@ const handleCard23 = (card: Item, db: any, interaction: CommandInteraction) => {
  */
 const handleCard24 = (card: Item, db: any, interaction: CommandInteraction) => {
   let inv = helper.getInventoryAsObject(interaction.user.id);
+
+  const foundCard = inv.getItems().find((e) => e.id === card.id);
+  if (!foundCard)
+    return interaction.reply({
+      content: `You do not own the card \`${card.name}\`.`,
+    });
+  card = foundCard;
 
   inv.setActiveItem(card);
   helper.updateInventoryRef(inv, interaction.user);
@@ -82,6 +96,12 @@ const handleCard25 = (card: Item, db: any, interaction: CommandInteraction) => {
     });
 
   let inv = helper.getInventoryAsObject(interaction.user.id);
+  const foundCard = inv.getItems().find((e) => e.id === card.id);
+  if (!foundCard)
+    return interaction.reply({
+      content: `You do not own the card \`${card.name}\`.`,
+    });
+  card = foundCard;
 
   const droppool = JSON.parse(fs.readFileSync("./data/droppool.json", "utf-8"))[0];
   const celestialCards = [...droppool.items].filter((e: any) => e.rarity === "Celestial");
@@ -114,6 +134,13 @@ const toggleCard28 = (card: Item, db: any, interaction: CommandInteraction) => {
   const isActive = inv.getActiveItems().find((e: any) => e.id === card.id) !== undefined;
   const action = isActive ? "disabled" : "enabled";
 
+  const foundCard = inv.getItems().find((e) => e.id === card.id);
+  if (!foundCard)
+    return interaction.reply({
+      content: `You do not own the card \`${card.name}\`.`,
+    });
+  card = foundCard;
+
   inv.setActiveItem(card);
   helper.updateInventoryRef(inv, interaction.user);
 
@@ -138,6 +165,13 @@ const handleCard29 = (card: Item, db: any, interaction: CommandInteraction) => {
 
   const inv = helper.getInventoryAsObject(interaction.user.id);
   if ((card.cardType as Cooldown).cooldown?.current > 0) return { error: true };
+
+  const foundCard = inv.getItems().find((e) => e.id === card.id);
+  if (!foundCard)
+    return interaction.reply({
+      content: `You do not own the card \`${card.name}\`.`,
+    });
+  card = foundCard;
 
   let points = db.prepare(`SELECT * FROM currency WHERE id=?`).get(interaction.user.id);
 
@@ -167,6 +201,12 @@ const handleCard30 = async (
   client: Client
 ) => {
   const inv = helper.getInventoryAsObject(interaction.user.id);
+  const foundCard = inv.getItems().find((e) => e.id === card.id);
+  if (!foundCard)
+    return interaction.reply({
+      content: `You do not own the card \`${card.name}\`.`,
+    });
+  card = foundCard;
 
   if ((card.cardType as Cooldown).cooldown?.current > 0)
     return interaction.reply({
@@ -243,12 +283,12 @@ const handleCard32 = (card: Item, db: any, interaction: CommandInteraction) => {
     });
 
   const inv = helper.getInventoryAsObject(interaction.user.id);
-  const cardName = card.name;
-  if (!card)
+  const foundCard = inv.getItems().find((e) => e.id === card.id);
+  if (!foundCard)
     return interaction.reply({
-      content: `Could not find card \`${cardName}\` in your inventory.`,
-      ephemeral: true,
+      content: `You do not own the card \`${card.name}\`.`,
     });
+  card = foundCard;
 
   let balance = db.prepare(`SELECT scrap FROM currency WHERE id=?`).get(interaction.user.id);
   if (!balance)
@@ -335,6 +375,13 @@ const handleCard33 = (card: Item, db: any, interaction: CommandInteraction) => {
   const expAmount = 10;
 
   const inv = helper.getInventoryAsObject(interaction.user.id);
+  const foundCard = inv.getItems().find((e) => e.id === card.id);
+  if (!foundCard)
+    return interaction.reply({
+      content: `You do not own the card \`${card.name}\`.`,
+    });
+  card = foundCard;
+
   if ((card.cardType as Cooldown).cooldown?.current > 0)
     return interaction.reply({
       content: `Could not use card \`${
@@ -400,6 +447,13 @@ const handleCard33 = (card: Item, db: any, interaction: CommandInteraction) => {
 const handleCard34 = (card: Item, db: any, interaction: CommandInteraction) => {
   const inv = helper.getInventoryAsObject(interaction.user.id);
 
+  const foundCard = inv.getItems().find((e) => e.id === card.id);
+  if (!foundCard)
+    return interaction.reply({
+      content: `You do not own the card \`${card.name}\`.`,
+    });
+  card = foundCard;
+
   if ((card.cardType as Cooldown).cooldown?.current > 0)
     return interaction.reply({
       content: `Could not use card \`${
@@ -431,6 +485,13 @@ const handleCard34 = (card: Item, db: any, interaction: CommandInteraction) => {
 const handleCard35 = (card: Item, db: any, interaction: CommandInteraction) => {
   const reward = 50;
   const inv = helper.getInventoryAsObject(interaction.user.id);
+  const foundCard = inv.getItems().find((e) => e.id === card.id);
+  if (!foundCard)
+    return interaction.reply({
+      content: `You do not own the card \`${card.name}\`.`,
+    });
+  card = foundCard;
+
   let used = card.use();
   if (!used) return { error: true };
 
@@ -480,6 +541,13 @@ const handleCard35 = (card: Item, db: any, interaction: CommandInteraction) => {
 const handleCard36 = (card: Item, db: any, interaction: CommandInteraction) => {
   const inv = helper.getInventoryAsObject(interaction.user.id);
 
+  const foundCard = inv.getItems().find((e) => e.id === card.id);
+  if (!foundCard)
+    return interaction.reply({
+      content: `You do not own the card \`${card.name}\`.`,
+    });
+  card = foundCard;
+
   inv.setActiveItem(card);
   helper.updateInventoryRef(inv, interaction.user);
 
@@ -501,6 +569,13 @@ const handleCard36 = (card: Item, db: any, interaction: CommandInteraction) => {
  */
 const handleCard38 = (card: Item, db: any, interaction: CommandInteraction) => {
   const inv = helper.getInventoryAsObject(interaction.user.id);
+
+  const foundCard = inv.getItems().find((e) => e.id === card.id);
+  if (!foundCard)
+    return interaction.reply({
+      content: `You do not own the card \`${card.name}\`.`,
+    });
+  card = foundCard;
 
   inv.setActiveItem(card);
   helper.updateInventoryRef(inv, interaction.user);
@@ -528,6 +603,12 @@ const handleCard37 = (card: Item, db: any, interaction: CommandInteraction) => {
   let points = db.prepare(`SELECT * FROM currency WHERE id=?`).get(interaction.user.id);
 
   let inv = helper.getInventoryAsObject(interaction.user.id);
+  const foundCard = inv.getItems().find((e) => e.id === card.id);
+  if (!foundCard)
+    return interaction.reply({
+      content: `You do not own the card \`${card.name}\`.`,
+    });
+  card = foundCard;
 
   if (points) {
     let { gems } = points;
@@ -579,6 +660,13 @@ const handleCard39 = (card: Item, db: any, interaction: CommandInteraction) => {
   let points = db.prepare(`SELECT * FROM currency WHERE id=?`).get(interaction.user.id);
 
   let inv = helper.getInventoryAsObject(interaction.user.id);
+  const foundCard = inv.getItems().find((e) => e.id === card.id);
+  if (!foundCard)
+    return interaction.reply({
+      content: `You do not own the card \`${card.name}\`.`,
+    });
+  card = foundCard;
+
   let uniqueItems = inv.getItems().length + inv.getActiveItems().length;
 
   if (points) {
@@ -633,6 +721,12 @@ const handleCard39 = (card: Item, db: any, interaction: CommandInteraction) => {
  */
 const toggleCard40 = (card: Item, db: any, interaction: CommandInteraction) => {
   const inv = helper.getInventoryAsObject(interaction.user.id);
+  const foundCard = inv.getItems().find((e) => e.id === card.id);
+  if (!foundCard)
+    return interaction.reply({
+      content: `You do not own the card \`${card.name}\`.`,
+    });
+  card = foundCard;
 
   const isActive = inv.getActiveItems().find((e: any) => e.id === card.id) !== undefined;
   const action = isActive ? "disabled" : "enabled";
@@ -662,6 +756,12 @@ const handleCard44 = (card: Item, db: any, interaction: CommandInteraction) => {
   if ((card.cardType as Cooldown).cooldown?.current > 0) return { error: true };
 
   const inv = helper.getInventoryAsObject(interaction.user.id);
+  const foundCard = inv.getItems().find((e) => e.id === card.id);
+  if (!foundCard)
+    return interaction.reply({
+      content: `You do not own the card \`${card.name}\`.`,
+    });
+  card = foundCard;
 
   let points = db.prepare(`SELECT * FROM currency WHERE id=?`).get(interaction.user.id);
 
@@ -675,6 +775,8 @@ const handleCard44 = (card: Item, db: any, interaction: CommandInteraction) => {
   db.prepare(`UPDATE currency SET gems=? WHERE id=?`).run(newBalance, interaction.user.id);
 
   card.resetCooldown();
+  const invIndex = inv.getItems().findIndex((e) => e.id === card.id);
+  if (invIndex >= 0) inv.list[invIndex] = card;
   helper.updateInventoryRef(inv, interaction.user);
 
   return { error: false, reward: gains, type: "gems" };
@@ -719,10 +821,13 @@ const handleCard46 = async (
 ) => {
   const inv = helper.getInventoryAsObject(interaction.user.id);
   const cardName = card.name;
-  if (!card)
+
+  const foundCard = inv.getItems().find((e) => e.id === card.id);
+  if (!foundCard)
     return interaction.reply({
       content: `You do not own the card \`${cardName}\`.`,
     });
+  card = foundCard;
 
   if ((card.cardType as Cooldown).cooldown?.current > 0)
     return interaction.reply({
@@ -779,6 +884,13 @@ const handleCard46 = async (
  */
 const handleCard47 = (card: Item, db: any, interaction: CommandInteraction) => {
   const inv = helper.getInventoryAsObject(interaction.user.id);
+
+  const foundCard = inv.getItems().find((e) => e.id === card.id);
+  if (!foundCard)
+    return interaction.reply({
+      content: `You do not own the card \`${card.name}\`.`,
+    });
+  card = foundCard;
 
   inv.setActiveItem(card);
   helper.updateInventoryRef(inv, interaction.user);

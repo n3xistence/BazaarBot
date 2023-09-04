@@ -19,10 +19,6 @@ import {
 } from "discord.js";
 import fs from "node:fs";
 
-const isCooldown = (obj: any = {}): obj is Cooldown => {
-  return typeof obj === "object" && "cooldown" in obj;
-};
-
 const wrapInColor = (color: string, str: string): string => {
   const resetColor = "\x1b[0m";
 
@@ -498,7 +494,7 @@ const updateItemProperties = (inventories: Array<any>, item: ItemType, { global 
       inv.activeItems[activeIndex] = newItem;
 
       inv.activeItems[activeIndex].amount = oldItem.amount;
-      if (isCooldown(newItem.cardType)) {
+      if (typeof newItem.cardType !== "string") {
         newItem.cardType.cooldown.current =
           oldItem.cardType.cooldown?.current ?? newItem.cardType.cooldown.current;
       }
@@ -509,7 +505,7 @@ const updateItemProperties = (inventories: Array<any>, item: ItemType, { global 
       ) {
         inv.moveToInventory(inv.activeItems[activeIndex]);
 
-        if (isCooldown(newItem.cardType)) newItem.cardType.cooldown.current = 0;
+        if (typeof newItem.cardType !== "string") newItem.cardType.cooldown.current = 0;
       }
 
       updateInventoryRef(inv, { id: entry.userId, username: entry.userName });
@@ -522,7 +518,7 @@ const updateItemProperties = (inventories: Array<any>, item: ItemType, { global 
       inv.list[generalIndex] = newItem;
 
       inv.list[generalIndex].amount = oldItem.amount;
-      if (isCooldown(newItem.cardType)) {
+      if (typeof newItem.cardType !== "string") {
         newItem.cardType.cooldown.current =
           oldItem.cardType.cooldown?.current ?? newItem.cardType.cooldown.current;
       }
@@ -686,7 +682,6 @@ const emoteHeart = "<:BB_Heart:1141096928747208795>";
 export {
   wrapInColor,
   getUNIXStamp,
-  isCooldown,
   confirm,
   randomPick,
   handleToggleCard,

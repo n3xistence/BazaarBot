@@ -100,8 +100,8 @@ export const spy: Command = {
               break;
           }
 
-          let effectIcon = helper.isCooldown(item.cardType) ? "⏳️" : "";
-          if (!helper.isCooldown(item.cardType))
+          let effectIcon = typeof item.cardType !== "string" ? "⏳️" : "";
+          if (typeof item.cardType === "string")
             switch (item.cardType.toLowerCase()) {
               case "passive":
                 effectIcon = "✨";
