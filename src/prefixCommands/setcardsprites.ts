@@ -5,8 +5,8 @@ import axios from "axios";
 import decompress from "decompress";
 import Logger from "../ext/Logger";
 
-export const setitems: PrefixCommand = {
-  name: "setitems",
+export const setcardsprites: PrefixCommand = {
+  name: "setcardsprites",
   async execute(client: Client, message: Message) {
     if (!message.member) return;
 

@@ -3,8 +3,10 @@ import Pack from "../Classes/Pack";
 import { Cooldown, ItemType } from "../types";
 import Item from "../Classes/Item";
 import * as ch from "../Classes/CardHandler";
+import { createCanvas, loadImage } from "@napi-rs/canvas";
 import {
   ActionRowBuilder,
+  AttachmentBuilder,
   ButtonBuilder,
   ButtonInteraction,
   ButtonStyle,
@@ -137,6 +139,9 @@ const handlePostTaskCard = (card: Item, db: any, interaction: CommandInteraction
       break;
     case 36:
       ch.handleCard36(card, db, interaction);
+      break;
+    case 38:
+      ch.handleCard38(card, db, interaction);
       break;
     case 47:
       ch.handleCard47(card, db, interaction);
@@ -616,6 +621,34 @@ const confirm = async (
       }
     });
   });
+};
+
+const getItemSprite = async (item: Item): Promise<any> => {
+  let sprite;
+  try {
+    sprite = await loadImage(`./data/cards/${item.code}.png`);
+  } catch {
+    sprite = await loadImage(`./data/cards/template.png`);
+  }
+  return sprite;
+};
+
+const getRewardImage = async (rewards: Array<Item>) => {
+  const canvas = createCanvas(rewards.length * 1000, 1080);
+  const ctx = canvas.getContext("2d");
+
+  for (let i = 0; i < rewards.length; i++) {
+    try {
+      var sprite = await loadImage(`./data/cards/${rewards[i].code}.png`);
+    } catch {
+      var sprite = await loadImage(`./data/cards/template.png`);
+    }
+    ctx.drawImage(sprite, i * 1000 + 100, 0);
+  }
+
+  const buffer = canvas.toBuffer("image/png");
+  const attachment = new AttachmentBuilder(buffer);
+  return attachment;
 };
 
 const emoteApprove = "<:BB_Check:1031690264089202698>";

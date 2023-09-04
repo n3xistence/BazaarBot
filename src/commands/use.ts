@@ -89,7 +89,7 @@ export const use: Command = {
       // Check Orphanage Card
       let inventories = JSON.parse(fs.readFileSync("./data/inventories.json", "utf-8"));
       const allActiveItems = getAllActiveItems(inventories);
-      if (card.id === 38 || allActiveItems.some((e) => e.id === 38))
+      if (card.id === 38 && allActiveItems.some((e) => e.id === 38))
         return interaction.reply({
           content: `Another player has already played \`${card.name}\`. Only one may be in play at a time.`,
           ephemeral: true,

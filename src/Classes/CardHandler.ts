@@ -496,6 +496,28 @@ const handleCard36 = (card: Item, db: any, interaction: CommandInteraction) => {
 
 /**
  * Rare
+ * Orphanage
+ * whatever
+ */
+const handleCard38 = (card: Item, db: any, interaction: CommandInteraction) => {
+  const inv = helper.getInventoryAsObject(interaction.user.id);
+
+  inv.setActiveItem(card);
+  helper.updateInventoryRef(inv, interaction.user);
+
+  return interaction.reply({
+    embeds: [
+      new EmbedBuilder()
+        .setColor("Green")
+        .setDescription(
+          `${helper.emoteApprove} ${helper.separator} Successfully used card \`${card.name}\``
+        ),
+    ],
+  });
+};
+
+/**
+ * Rare
  * Human Remains
  * Gain between 15 and 30 gems
  */
@@ -817,6 +839,7 @@ export {
   handleCard35,
   handleCard36,
   handleCard37,
+  handleCard38,
   handleCard39,
   toggleCard40,
   handleCard44,

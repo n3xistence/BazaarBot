@@ -7,6 +7,7 @@ import * as helper from "../ext/Helper";
 import sql from "better-sqlite3";
 import CommandOptions from "../enums/CommandOptions";
 import { BazaarStats, Currency } from "../types/DBTypes";
+import Pack from "../Classes/Pack";
 
 const extractItemsFromInventory = (inv: Inventory) => {
   let allItems = [...inv.getActiveItems(), ...inv.getItems(), ...inv.getPacks()];
@@ -24,6 +25,18 @@ export const inventory: Command = {
       description: "Whether to show your inventory publically or not (default is false)",
       required: false,
     },
+    {
+      name: "type",
+      type: CommandOptions.STRING,
+      description: "Show only cards of a specific type",
+      required: false,
+    },
+    {
+      name: "rarity",
+      type: CommandOptions.STRING,
+      description: "Show only cards of a specific rarity",
+      required: false,
+    },
   ],
   async execute(client: Client, interaction: CommandInteraction) {
     if (!interaction.isChatInputCommand()) return;
@@ -32,13 +45,33 @@ export const inventory: Command = {
     db.pragma("journal_mode = WAL");
     try {
       let showPublic = interaction.options.getBoolean("showpublic") ?? false;
+      const rarityFilter = interaction.options.getString("rarity");
+      const typeFilter = interaction.options.getString("type");
 
       let inv = helper.getInventoryAsObject(interaction.user.id);
-      let items = extractItemsFromInventory(inv);
+      let items: Array<Item | Pack> = extractItemsFromInventory(inv);
       const uniqueCards = [...inv.getItems(), ...inv.getActiveItems()].length;
 
       items.sort((a, b) => a.name.localeCompare(b.name));
+      if (typeFilter || rarityFilter) {
+        items = items.filter(
+          (e: Item | Pack) =>
+            e instanceof Item &&
+            (!rarityFilter || e.rarity.toLowerCase() === rarityFilter.toLowerCase()) &&
+            (!typeFilter ||
+              (typeof e.cardType === "string"
+                ? e.cardType.toLowerCase() === typeFilter.toLowerCase()
+                : typeFilter.toLowerCase() === "cooldown" && e.cardType.cooldown))
+        );
 
+        if (items.length === 0)
+          return interaction.reply({
+            content: `There are no cards for the following filters:\n${
+              typeFilter ? `Type filter: ${typeFilter}\n` : ""
+            }${rarityFilter ? `Rarity filter: ${rarityFilter}` : ""}`,
+            ephemeral: true,
+          });
+      }
       let balance = {
         gems: "0",
         gold: "0",
