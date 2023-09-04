@@ -134,7 +134,7 @@ const toggleCard28 = (card: Item, db: any, interaction: CommandInteraction) => {
   const isActive = inv.getActiveItems().find((e: any) => e.id === card.id) !== undefined;
   const action = isActive ? "disabled" : "enabled";
 
-  const foundCard = inv.getItems().find((e) => e.id === card.id);
+  const foundCard = [...inv.getActiveItems(), ...inv.getItems()].find((e) => e.id === card.id);
   if (!foundCard)
     return interaction.reply({
       content: `You do not own the card \`${card.name}\`.`,
@@ -721,7 +721,7 @@ const handleCard39 = (card: Item, db: any, interaction: CommandInteraction) => {
  */
 const toggleCard40 = (card: Item, db: any, interaction: CommandInteraction) => {
   const inv = helper.getInventoryAsObject(interaction.user.id);
-  const foundCard = inv.getItems().find((e) => e.id === card.id);
+  const foundCard = [...inv.getItems(), ...inv.getActiveItems()].find((e) => e.id === card.id);
   if (!foundCard)
     return interaction.reply({
       content: `You do not own the card \`${card.name}\`.`,

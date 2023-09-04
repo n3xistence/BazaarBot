@@ -3,9 +3,6 @@ import { AttachmentBuilder, Client, CommandInteraction, EmbedBuilder } from "dis
 import CommandOptions from "../enums/CommandOptions";
 import fs from "node:fs";
 import sql from "better-sqlite3";
-import Paginator from "../Classes/Paginator";
-import { PaginationOption } from "../types/PaginationOption";
-import Inventory from "../Classes/Inventory";
 import * as helper from "../ext/Helper";
 
 const getAllActiveItems = (data: any) => {
