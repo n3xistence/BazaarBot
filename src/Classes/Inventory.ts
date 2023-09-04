@@ -11,10 +11,6 @@ class Inventory {
     this.list = list;
   }
 
-  private isCooldown(obj: any): obj is Cooldown {
-    return typeof obj === "object" && "cooldown" in obj;
-  }
-
   getItems() {
     return this.list;
   }
@@ -128,7 +124,7 @@ class Inventory {
     for (let i = 0; i < this.activeItems.length; i++) {
       let item = this.activeItems[i];
 
-      if (this.isCooldown(item.cardType)) {
+      if (typeof item.cardType !== "string") {
         item.resetCooldown();
         this.moveToInventory(item);
         i--;
@@ -144,7 +140,7 @@ class Inventory {
     for (let i = 0; i < this.activeItems.length; i++) {
       let item = this.activeItems[i];
 
-      if (this.isCooldown(item.cardType)) {
+      if (typeof item.cardType !== "string") {
         item.resetCooldown();
         this.moveToInventory(item);
         i--;

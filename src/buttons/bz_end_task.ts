@@ -28,7 +28,7 @@ const getAllActiveItems = (data: any, type: string) => {
 };
 
 const getApplicableEffects = (inv: Array<any>, options: any, hasRunestoneCard: boolean) => {
-  const { userId } = options;
+  const { userId, type } = options;
 
   let modifier = { additive: 0, multiplicative: 1 };
   for (const item of inv) {
@@ -37,6 +37,8 @@ const getApplicableEffects = (inv: Array<any>, options: any, hasRunestoneCard: b
     if (item.target === "target" && item.targetUser.id !== userId) continue;
 
     for (const effect of item.effects) {
+      if (type !== effect.category) continue;
+
       if (item.owner.id === userId && hasRunestoneCard && item.cardType === "passive") {
         if (effect.type === "additive") modifier.additive += parseFloat(effect.modifier) * 0.5;
         else modifier.multiplicative += parseFloat(effect.modifier) * 0.5;
@@ -113,6 +115,7 @@ const handleTaskEnd = async (db: any, interaction: any, client: Client) => {
       activeItems,
       {
         userId: winner.id,
+        type: activeTask.type,
       },
       hasRunestoneCard
     );

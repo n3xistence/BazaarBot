@@ -31,16 +31,8 @@ class Item {
     this.effects = effects;
   }
 
-  cardIsCooldown() {
-    return this.isCooldown(this);
-  }
-
-  isCooldown(obj: any = {}): obj is Cooldown {
-    return typeof obj === "object" && "cooldown" in obj;
-  }
-
   use() {
-    if (this.isCooldown(this.cardType) && this.cardType.cooldown.current > 0) return false;
+    if (typeof this.cardType !== "string" && this.cardType.cooldown.current > 0) return false;
 
     this.resetCooldown();
     return true;
@@ -51,13 +43,13 @@ class Item {
   }
 
   resetCooldown() {
-    if (!this.isCooldown(this.cardType)) return;
+    if (typeof this.cardType === "string") return;
 
     this.cardType.cooldown.current = this.cardType.cooldown.max;
   }
 
   turn() {
-    if (!this.isCooldown(this.cardType)) return;
+    if (typeof this.cardType === "string") return;
 
     if (this.cardType.cooldown.current === 0) return;
     this.cardType.cooldown.current -= 1;
