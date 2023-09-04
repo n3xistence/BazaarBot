@@ -21,7 +21,7 @@ class Inventory {
   getActiveItems() {
     return this.activeItems;
   }
-  getPacks() {
+  getPacks(): Array<Pack> {
     return this.packs;
   }
 
