@@ -37,7 +37,7 @@ export const card_50_pick: ModalInteraction = {
       });
     }
 
-    if (typeof card.cardType !== "string" && !card.cardType.cooldown)
+    if (typeof card.cardType === "string")
       return interaction.reply({
         content: `\`${card.name}\` is not a cooldown based card.`,
         ephemeral: true,
