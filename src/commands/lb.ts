@@ -1,11 +1,10 @@
 import { Client, CommandInteraction, EmbedBuilder } from "discord.js";
 import CommandOptions from "../enums/CommandOptions";
 import * as helper from "../ext/Helper";
-import sql from "better-sqlite3";
+import * as Database from "../Database";
 import { Command } from "./ICommand";
 import Paginator from "../Classes/Paginator";
-import { BazaarStats, Currency } from "../types/DBTypes";
-import Item from "../Classes/Item";
+import { Currency } from "../types/DBTypes";
 
 const createEmbeds = (statLists: any) => {
   let uniqueEmbed = new EmbedBuilder()
@@ -118,83 +117,78 @@ export const lb: Command = {
   async execute(client: Client, interaction: CommandInteraction) {
     if (!interaction.isChatInputCommand()) return;
 
-    const db = sql("./data/data.db");
-    db.pragma("journal_mode = WAL");
-    try {
-      let type = interaction.options.getString("type");
+    const db = Database.init();
+    let type = interaction.options.getString("type");
 
-      const userList: Array<any> = db.prepare(`SELECT * FROM BazaarStats`).all() as Array<any>;
+    const userList: Array<any> = db.prepare(`SELECT * FROM BazaarStats`).all() as Array<any>;
 
-      if (type)
-        return interaction.reply({
-          content: "This feature is currently under construction.",
-          ephemeral: true,
-        });
+    if (type)
+      return interaction.reply({
+        content: "This feature is currently under construction.",
+        ephemeral: true,
+      });
 
-      await interaction.deferReply();
+    await interaction.deferReply();
 
-      if (!type) {
-        for (const user of userList) {
-          const usr = await client.users.fetch(user.id).catch(() => {});
-          if (!usr) continue;
+    if (!type) {
+      for (const user of userList) {
+        const usr = await client.users.fetch(user.id).catch(() => {});
+        if (!usr) continue;
 
-          const inv = helper.getInventoryAsObject(user.id);
-          const pointData: Currency | undefined = db
-            .prepare(`SELECT * FROM currency WHERE id=?`)
-            .get(user.id) as Currency;
+        const inv = helper.getInventoryAsObject(user.id);
+        const pointData: Currency | undefined = db
+          .prepare(`SELECT * FROM currency WHERE id=?`)
+          .get(user.id) as Currency;
 
-          const stats = JSON.parse(user.stats);
-          const totalFights = stats.pvp_stats?.wins ?? 0 + stats.pvp_stats?.losses ?? 0;
-          const winrate = totalFights > 0 ? stats.pvp_stats?.wins / totalFights : 0;
+        const stats = JSON.parse(user.stats);
+        const totalFights = stats.pvp_stats?.wins ?? 0 + stats.pvp_stats?.losses ?? 0;
+        const winrate = totalFights > 0 ? stats.pvp_stats?.wins / totalFights : 0;
 
-          const statObj = {
-            uniqueCards: [...inv.getItems(), ...inv.getActiveItems()].length,
-            gems: pointData?.gems ?? 0,
-            scrap: pointData?.scrap ?? 0,
-            tasksWon: stats.tasks_won ?? 0,
-            packsOpened: stats.packs_opened ?? 0,
-            cardsLiquidated: stats.cards_liquidated ?? 0,
-            levels: helper.getLevelData(user.exp ?? 0).level,
-            winrate,
-            allCards: 0,
-          };
-
-          let allCards = 0;
-          for (const card of [...inv.getItems(), ...inv.getActiveItems()]) {
-            allCards += card.amount;
-          }
-          statObj.allCards = allCards;
-
-          user.stats = statObj;
-          user.name = usr.username;
-        }
-
-        const lb = {
-          uniqueCards: [...userList]
-            .sort((a, b) => b.stats.uniqueCards - a.stats.uniqueCards)
-            .slice(0, 10),
-          packsOpened: [...userList]
-            .sort((a, b) => b.stats.packsOpened - a.stats.packsOpened)
-            .slice(0, 10),
-          cardsLiquidated: [...userList]
-            .sort((a, b) => b.stats.cardsLiquidated - a.stats.cardsLiquidated)
-            .slice(0, 10),
-          allCards: [...userList].sort((a, b) => b.stats.allCards - a.stats.allCards).slice(0, 10),
-
-          levels: [...userList].sort((a, b) => b.stats.levels - a.stats.levels).slice(0, 10),
-          winrate: [...userList].sort((a, b) => b.stats.winrate - a.stats.winrate).slice(0, 10),
-          gems: [...userList].sort((a, b) => b.stats.gems - a.stats.gems).slice(0, 10),
-          scrap: [...userList].sort((a, b) => b.stats.scrap - a.stats.scrap).slice(0, 10),
-          tasksWon: [...userList].sort((a, b) => b.stats.tasksWon - a.stats.tasksWon).slice(0, 10),
+        const statObj = {
+          uniqueCards: [...inv.getItems(), ...inv.getActiveItems()].length,
+          gems: pointData?.gems ?? 0,
+          scrap: pointData?.scrap ?? 0,
+          tasksWon: stats.tasks_won ?? 0,
+          packsOpened: stats.packs_opened ?? 0,
+          cardsLiquidated: stats.cards_liquidated ?? 0,
+          levels: helper.getLevelData(user.exp ?? 0).level,
+          winrate,
+          allCards: 0,
         };
 
-        let embeds = createEmbeds(lb);
+        let allCards = 0;
+        for (const card of [...inv.getItems(), ...inv.getActiveItems()]) {
+          allCards += card.amount;
+        }
+        statObj.allCards = allCards;
 
-        const paginator = new Paginator();
-        return paginator.bazaarPaginate({ client, interaction }, embeds.collectors, embeds.stats);
+        user.stats = statObj;
+        user.name = usr.username;
       }
-    } finally {
-      db.close();
+
+      const lb = {
+        uniqueCards: [...userList]
+          .sort((a, b) => b.stats.uniqueCards - a.stats.uniqueCards)
+          .slice(0, 10),
+        packsOpened: [...userList]
+          .sort((a, b) => b.stats.packsOpened - a.stats.packsOpened)
+          .slice(0, 10),
+        cardsLiquidated: [...userList]
+          .sort((a, b) => b.stats.cardsLiquidated - a.stats.cardsLiquidated)
+          .slice(0, 10),
+        allCards: [...userList].sort((a, b) => b.stats.allCards - a.stats.allCards).slice(0, 10),
+
+        levels: [...userList].sort((a, b) => b.stats.levels - a.stats.levels).slice(0, 10),
+        winrate: [...userList].sort((a, b) => b.stats.winrate - a.stats.winrate).slice(0, 10),
+        gems: [...userList].sort((a, b) => b.stats.gems - a.stats.gems).slice(0, 10),
+        scrap: [...userList].sort((a, b) => b.stats.scrap - a.stats.scrap).slice(0, 10),
+        tasksWon: [...userList].sort((a, b) => b.stats.tasksWon - a.stats.tasksWon).slice(0, 10),
+      };
+
+      let embeds = createEmbeds(lb);
+
+      const paginator = new Paginator();
+      return paginator.bazaarPaginate({ client, interaction }, embeds.collectors, embeds.stats);
     }
   },
 };

@@ -27,6 +27,7 @@ const log = (logLevel: string | null, ...args: Array<string>): void => {
       __ERROR(...args);
       break;
     case "warn":
+    case "warning":
       __WARN(...args);
       break;
     case "success":

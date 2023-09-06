@@ -8,7 +8,7 @@ import {
   EmbedBuilder,
 } from "discord.js";
 import * as helper from "../ext/Helper";
-import sql from "better-sqlite3";
+import * as Database from "../Database";
 import CommandOptions from "../enums/CommandOptions";
 
 const curseText = (text: string) => {
@@ -97,100 +97,95 @@ export const task: Command = {
         ephemeral: true,
       });
 
-    const db = sql("./data/data.db");
-    db.pragma("journal_mode = WAL");
-    try {
-      const currentTasks = db.prepare(`SELECT * FROM Bazaar`).all();
+    const db = Database.init();
+    const currentTasks = db.prepare(`SELECT * FROM Bazaar`).all();
 
-      let activeTasks = db.prepare(`SELECT * FROM Bazaar WHERE active='true'`).all();
+    let activeTasks = db.prepare(`SELECT * FROM Bazaar WHERE active='true'`).all();
 
-      if (activeTasks.length > 0)
-        return interaction.reply({
-          content: `There is already an active task.`,
-          ephemeral: true,
-        });
-
-      const task = {
-        active: true,
-        id: currentTasks.length + 1,
-        type: interaction.options.getString("rewardtype")?.toLowerCase(),
-        amount: interaction.options.getNumber("amount"),
-        timestamp: helper.getUNIXStamp(),
-        participants: JSON.stringify([]),
-        winners: interaction.options.getNumber("winners"),
-        chosenWinners: JSON.stringify([]),
-        activeCards: JSON.stringify([]),
-        description: interaction.options.getString("description"),
-        notes: interaction.options.getString("notes") ?? "",
-      };
-
-      const validTypes = ["gold", "gems"];
-      if (!validTypes.includes(task.type ?? ""))
-        return interaction.reply({
-          content: `Invalid task type.\nTask must be of one of the following types:\n>>> ${validTypes.join(
-            "\n"
-          )}`,
-          ephemeral: true,
-        });
-
-      const cursed = {
-        description: curseText(task.description as string),
-        winners: curseText(`${task.winners}`),
-        reward: curseText(`${task.amount} ${task.type}`),
-        notes: curseText(task.notes),
-      };
-
-      let embed = new EmbedBuilder()
-        .setTitle(`${helper.emoteBazaar} ${helper.separator} Bazaar Task #${task.id}`)
-        .setColor("DarkPurple")
-        .setDescription(
-          `Winners: ${cursed.winners}\nStarted: <t:${task.timestamp}:R>\nRewards: ${cursed.reward}\n\n> ${cursed.description}\n\n${cursed.notes}`
-        );
-
-      let row: any = new ActionRowBuilder().addComponents(
-        new ButtonBuilder()
-          .setCustomId("bz_add_winner")
-          .setStyle(ButtonStyle.Primary)
-          .setLabel("Add Winner"),
-        new ButtonBuilder().setCustomId("bz_end_task").setStyle(ButtonStyle.Danger).setLabel("End"),
-        new ButtonBuilder()
-          .setCustomId("decrypttask")
-          .setStyle(ButtonStyle.Secondary)
-          .setLabel("Decrypt")
-      );
-
-      if (!interaction.channel)
-        return interaction.reply({
-          content: "There has been an issue fetching the channel.",
-          ephemeral: true,
-        });
-
-      let msg = await interaction.channel.send({
-        embeds: [embed],
-        components: [row],
-      });
-
-      db.prepare(`INSERT INTO Bazaar VALUES(?,?,?,?,?,?,?,?,?,?,?,?)`).run(
-        task.id,
-        `${task.active}`,
-        task.timestamp,
-        task.type,
-        task.amount,
-        task.participants,
-        task.winners,
-        task.chosenWinners,
-        task.activeCards,
-        task.description,
-        msg.id,
-        task.notes
-      );
-
-      return await interaction.reply({
-        content: `Successfully started task ${task.id}.`,
+    if (activeTasks.length > 0)
+      return interaction.reply({
+        content: `There is already an active task.`,
         ephemeral: true,
       });
-    } finally {
-      db.close();
-    }
+
+    const task = {
+      active: true,
+      id: currentTasks.length + 1,
+      type: interaction.options.getString("rewardtype")?.toLowerCase(),
+      amount: interaction.options.getNumber("amount"),
+      timestamp: helper.getUNIXStamp(),
+      participants: JSON.stringify([]),
+      winners: interaction.options.getNumber("winners"),
+      chosenWinners: JSON.stringify([]),
+      activeCards: JSON.stringify([]),
+      description: interaction.options.getString("description"),
+      notes: interaction.options.getString("notes") ?? "",
+    };
+
+    const validTypes = ["gold", "gems"];
+    if (!validTypes.includes(task.type ?? ""))
+      return interaction.reply({
+        content: `Invalid task type.\nTask must be of one of the following types:\n>>> ${validTypes.join(
+          "\n"
+        )}`,
+        ephemeral: true,
+      });
+
+    const cursed = {
+      description: curseText(task.description as string),
+      winners: curseText(`${task.winners}`),
+      reward: curseText(`${task.amount} ${task.type}`),
+      notes: curseText(task.notes),
+    };
+
+    let embed = new EmbedBuilder()
+      .setTitle(`${helper.emoteBazaar} ${helper.separator} Bazaar Task #${task.id}`)
+      .setColor("DarkPurple")
+      .setDescription(
+        `Winners: ${cursed.winners}\nStarted: <t:${task.timestamp}:R>\nRewards: ${cursed.reward}\n\n> ${cursed.description}\n\n${cursed.notes}`
+      );
+
+    let row: any = new ActionRowBuilder().addComponents(
+      new ButtonBuilder()
+        .setCustomId("bz_add_winner")
+        .setStyle(ButtonStyle.Primary)
+        .setLabel("Add Winner"),
+      new ButtonBuilder().setCustomId("bz_end_task").setStyle(ButtonStyle.Danger).setLabel("End"),
+      new ButtonBuilder()
+        .setCustomId("decrypttask")
+        .setStyle(ButtonStyle.Secondary)
+        .setLabel("Decrypt")
+    );
+
+    if (!interaction.channel)
+      return interaction.reply({
+        content: "There has been an issue fetching the channel.",
+        ephemeral: true,
+      });
+
+    let msg = await interaction.channel.send({
+      embeds: [embed],
+      components: [row],
+    });
+
+    db.prepare(`INSERT INTO Bazaar VALUES(?,?,?,?,?,?,?,?,?,?,?,?)`).run(
+      task.id,
+      `${task.active}`,
+      task.timestamp,
+      task.type,
+      task.amount,
+      task.participants,
+      task.winners,
+      task.chosenWinners,
+      task.activeCards,
+      task.description,
+      msg.id,
+      task.notes
+    );
+
+    return await interaction.reply({
+      content: `Successfully started task ${task.id}.`,
+      ephemeral: true,
+    });
   },
 };

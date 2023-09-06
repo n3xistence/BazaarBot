@@ -1,6 +1,6 @@
 import { ButtonInteraction, Client, ColorResolvable, EmbedBuilder } from "discord.js";
 import fs from "fs";
-import sql from "better-sqlite3";
+import * as Database from "../Database";
 import * as helper from "../ext/Helper";
 import Item from "../Classes/Item";
 
@@ -206,61 +206,56 @@ export const bz_end_task: any = {
     if (interaction.message.partial) await interaction.message.fetch();
     if (!interaction.member) return;
 
-    const db = sql("./data/data.db");
-    db.pragma("journal_mode = WAL");
-    try {
-      let hasperms = (interaction.member.permissions as any).has("ManageGuild");
-      if (!hasperms && interaction.user.id !== "189764769312407552")
-        return interaction.reply({
-          content: `Invalid authorisation`,
-          ephemeral: true,
-        });
-
-      let verify_embed = new EmbedBuilder()
-        .setColor("Red")
-        .setDescription(`Are you sure you would like to end the current task?`);
-
-      const res = await helper.confirm(interaction, client, {
-        embeds: [verify_embed],
+    let hasperms = (interaction.member.permissions as any).has("ManageGuild");
+    if (!hasperms && interaction.user.id !== "189764769312407552")
+      return interaction.reply({
+        content: `Invalid authorisation`,
         ephemeral: true,
       });
 
-      if (res) {
-        const taskRes: any = await handleTaskEnd(db, interaction, client);
-        if (!taskRes || taskRes.void) return;
+    let verify_embed = new EmbedBuilder()
+      .setColor("Red")
+      .setDescription(`Are you sure you would like to end the current task?`);
 
-        const inventories = JSON.parse(fs.readFileSync("./data/inventories.json", "utf-8"));
-        for (const entry of inventories) {
-          let user = await client.users.fetch(entry.userId).catch(() => {});
-          if (!user) continue;
+    const res = await helper.confirm(interaction, client, {
+      embeds: [verify_embed],
+      ephemeral: true,
+    });
 
-          let inv = helper.getInventoryAsObject(user.id);
-          inv.endTask();
-          helper.updateInventoryRef(inv, user);
-        }
+    const db = Database.init();
+    if (res) {
+      const taskRes: any = await handleTaskEnd(db, interaction, client);
+      if (!taskRes || taskRes.void) return;
 
-        interaction.message.edit({
-          embeds: [
-            new EmbedBuilder()
-              .setTitle(interaction.message.embeds[0].data.title as string)
-              .setDescription(interaction.message.embeds[0].data.description as string)
-              .setColor(interaction.message.embeds[0].data.color as ColorResolvable),
-          ],
-          components: [],
-        });
-        interaction.deleteReply();
-      } else {
-        const denyembed = new EmbedBuilder()
-          .setColor("Red")
-          .setDescription(`The task will remain active.`);
+      const inventories = JSON.parse(fs.readFileSync("./data/inventories.json", "utf-8"));
+      for (const entry of inventories) {
+        let user = await client.users.fetch(entry.userId).catch(() => {});
+        if (!user) continue;
 
-        return interaction.editReply({
-          embeds: [denyembed],
-          components: [],
-        });
+        let inv = helper.getInventoryAsObject(user.id);
+        inv.endTask();
+        helper.updateInventoryRef(inv, user);
       }
-    } finally {
-      db.close();
+
+      interaction.message.edit({
+        embeds: [
+          new EmbedBuilder()
+            .setTitle(interaction.message.embeds[0].data.title as string)
+            .setDescription(interaction.message.embeds[0].data.description as string)
+            .setColor(interaction.message.embeds[0].data.color as ColorResolvable),
+        ],
+        components: [],
+      });
+      interaction.deleteReply();
+    } else {
+      const denyembed = new EmbedBuilder()
+        .setColor("Red")
+        .setDescription(`The task will remain active.`);
+
+      return interaction.editReply({
+        embeds: [denyembed],
+        components: [],
+      });
     }
   },
 };
