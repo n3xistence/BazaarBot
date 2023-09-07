@@ -104,7 +104,9 @@ const handleCard25 = (card: Item, db: any, interaction: CommandInteraction) => {
   card = foundCard;
 
   const droppool = JSON.parse(fs.readFileSync("./data/droppool.json", "utf-8"))[0];
-  const celestialCards = [...droppool.items].filter((e: any) => e.rarity === "Celestial");
+  const celestialCards = [...droppool.items].filter(
+    (e: any) => e.rarity.toLowerCase() === "celestial"
+  );
   const randomCelestial = celestialCards[Math.floor(Math.random() * celestialCards.length)];
   randomCelestial.amount = 1;
 
@@ -397,19 +399,27 @@ const handleCard33 = (card: Item, db: any, interaction: CommandInteraction) => {
   let dropPoolIndex = droppool.findIndex((e: any) => e.code === "alpha");
   let cardPool = {
     common: {
-      pool: droppool[dropPoolIndex].items.filter((e: any) => e.rarity === "Common"),
+      pool: droppool[dropPoolIndex].items.filter((e: any) => e.rarity.toLowerCase() === "common"),
       chance: parseFloat(droppool[dropPoolIndex].rarities.common),
     },
     rare: {
-      pool: droppool[dropPoolIndex].items.filter((e: any) => e.rarity === "Rare"),
+      pool: droppool[dropPoolIndex].items.filter((e: any) => e.rarity.toLowerCase() === "rare"),
       chance: parseFloat(droppool[dropPoolIndex].rarities.rare),
     },
+    epic: {
+      pool: droppool[dropPoolIndex].items.filter((e: any) => e.rarity.toLowerCase() === "epic"),
+      chance: parseFloat(droppool[dropPoolIndex].rarities.epic),
+    },
     legendary: {
-      pool: droppool[dropPoolIndex].items.filter((e: any) => e.rarity === "Legendary"),
+      pool: droppool[dropPoolIndex].items.filter(
+        (e: any) => e.rarity.toLowerCase() === "legendary"
+      ),
       chance: parseFloat(droppool[dropPoolIndex].rarities.legendary),
     },
     celestial: {
-      pool: droppool[dropPoolIndex].items.filter((e: any) => e.rarity === "Celestial"),
+      pool: droppool[dropPoolIndex].items.filter(
+        (e: any) => e.rarity.toLowerCase() === "celestial"
+      ),
       chance: parseFloat(droppool[dropPoolIndex].rarities.celestial),
     },
   };

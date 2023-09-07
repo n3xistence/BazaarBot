@@ -52,7 +52,10 @@ export const scrap: Command = {
         scrapYield = 1 * scrapAmount;
         break;
       case "rare":
-        scrapYield = 5 * scrapAmount;
+        scrapYield = 3 * scrapAmount;
+        break;
+      case "epic":
+        scrapYield = 10 * scrapAmount;
         break;
       case "legendary":
         scrapYield = 60 * scrapAmount;

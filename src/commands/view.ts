@@ -66,6 +66,10 @@ export const view: Command = {
         rarity.emote = helper.emoteLegendary;
         rarity.color = "Yellow";
         break;
+      case "epic":
+        rarity.emote = helper.emoteEpic;
+        rarity.color = "Purple";
+        break;
       case "rare":
         rarity.emote = helper.emoteRare;
         rarity.color = "Blue";

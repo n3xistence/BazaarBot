@@ -66,10 +66,13 @@ export const sell: Command = {
         gemYield = 1 * sellAmount;
         break;
       case "rare":
-        gemYield = 3 * sellAmount;
+        gemYield = 2 * sellAmount;
+        break;
+      case "epic":
+        gemYield = 7 * sellAmount;
         break;
       case "legendary":
-        gemYield = 25 * sellAmount;
+        gemYield = 40 * sellAmount;
         break;
       case "celestial":
         gemYield = 200 * sellAmount;
