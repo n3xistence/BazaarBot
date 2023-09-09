@@ -947,6 +947,35 @@ const handleCard50 = (card: Item, db: any, interaction: CommandInteraction) => {
   return interaction.showModal(modal);
 };
 
+/**
+ * Epic
+ * Treasure Hoard
+ * +30% reward from the task (gold/gems)
+ */
+const handleCard51 = (card: Item, db: any, interaction: CommandInteraction) => {
+  const inv = helper.getInventoryAsObject(interaction.user.id);
+
+  const foundCard = inv.getItems().find((e) => e.id === card.id);
+  if (!foundCard)
+    return interaction.reply({
+      content: `You do not own the card \`${card.name}\`.`,
+    });
+  card = foundCard;
+
+  inv.setActiveItem(card);
+  helper.updateInventoryRef(inv, interaction.user);
+
+  return interaction.reply({
+    embeds: [
+      new EmbedBuilder()
+        .setColor("Green")
+        .setDescription(
+          `${helper.emoteApprove} ${helper.separator} Successfully used card \`${card.name}\``
+        ),
+    ],
+  });
+};
+
 export {
   handleCard23,
   handleCard24,
@@ -969,4 +998,5 @@ export {
   handleCard46,
   handleCard47,
   handleCard50,
+  handleCard51,
 };

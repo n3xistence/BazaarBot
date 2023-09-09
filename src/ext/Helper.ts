@@ -142,6 +142,9 @@ const handlePostTaskCard = (card: Item, db: any, interaction: CommandInteraction
     case 47:
       ch.handleCard47(card, db, interaction);
       break;
+    case 51:
+      ch.handleCard51(card, db, interaction);
+      break;
     default:
       break;
   }
