@@ -75,19 +75,29 @@ export const open: Command = {
     await interaction.deferReply();
     let cardPool = {
       common: {
-        pool: droppool[dropPoolIndex].items.filter((e: Item) => e.rarity === "Common"),
+        pool: droppool[dropPoolIndex].items.filter(
+          (e: Item) => e.rarity.toLowerCase() === "common"
+        ),
         chance: parseFloat(droppool[dropPoolIndex].rarities.common),
       },
       rare: {
-        pool: droppool[dropPoolIndex].items.filter((e: Item) => e.rarity === "Rare"),
+        pool: droppool[dropPoolIndex].items.filter((e: Item) => e.rarity.toLowerCase() === "rare"),
         chance: parseFloat(droppool[dropPoolIndex].rarities.rare),
       },
+      epic: {
+        pool: droppool[dropPoolIndex].items.filter((e: Item) => e.rarity.toLowerCase() === "epic"),
+        chance: parseFloat(droppool[dropPoolIndex].rarities.epic),
+      },
       legendary: {
-        pool: droppool[dropPoolIndex].items.filter((e: Item) => e.rarity === "Legendary"),
+        pool: droppool[dropPoolIndex].items.filter(
+          (e: Item) => e.rarity.toLowerCase() === "legendary"
+        ),
         chance: parseFloat(droppool[dropPoolIndex].rarities.legendary),
       },
       celestial: {
-        pool: droppool[dropPoolIndex].items.filter((e: Item) => e.rarity === "Celestial"),
+        pool: droppool[dropPoolIndex].items.filter(
+          (e: Item) => e.rarity.toLowerCase() === "celestial"
+        ),
         chance: parseFloat(droppool[dropPoolIndex].rarities.celestial),
       },
     };
