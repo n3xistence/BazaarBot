@@ -83,14 +83,17 @@ export const spy: Command = {
     let stringifiedItems = items.map((item) => {
       if (item instanceof Item) {
         let rarity = { emote: "" };
-        switch (item.rarity) {
-          case "Celestial":
+        switch (item.rarity.toLowerCase()) {
+          case "celestial":
             rarity.emote = helper.emoteCelestial;
             break;
-          case "Legendary":
+          case "legendary":
             rarity.emote = helper.emoteLegendary;
             break;
-          case "Rare":
+          case "epic":
+            rarity.emote = helper.emoteEpic;
+            break;
+          case "rare":
             rarity.emote = helper.emoteRare;
             break;
           default:

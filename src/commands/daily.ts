@@ -42,14 +42,17 @@ export const daily: Command = {
 
       let { card } = entry;
       let rarity = { emote: "" };
-      switch (card.rarity) {
-        case "Celestial":
+      switch (card.rarity.toLowerCase()) {
+        case "celestial":
           rarity.emote = helper.emoteCelestial;
           break;
-        case "Legendary":
+        case "legendary":
           rarity.emote = helper.emoteLegendary;
           break;
-        case "Rare":
+        case "epic":
+          rarity.emote = helper.emoteEpic;
+          break;
+        case "rare":
           rarity.emote = helper.emoteRare;
           break;
         default:

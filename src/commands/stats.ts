@@ -31,10 +31,11 @@ export const stats: Command = {
     let uniqueCards = items.length;
 
     let cards = {
-      common: [...items.filter((e) => e.rarity === "Common")],
-      rare: [...items.filter((e) => e.rarity === "Rare")],
-      legendary: [...items.filter((e) => e.rarity === "Legendary")],
-      celestial: [...items.filter((e) => e.rarity === "Celestial")],
+      common: [...items.filter((e) => e.rarity.toLowerCase() === "common")],
+      rare: [...items.filter((e) => e.rarity.toLowerCase() === "rare")],
+      epic: [...items.filter((e) => e.rarity.toLowerCase() === "epic")],
+      legendary: [...items.filter((e) => e.rarity.toLowerCase() === "legendary")],
+      celestial: [...items.filter((e) => e.rarity.toLowerCase() === "celestial")],
     };
 
     let totalPacksOpened = generalInfo ? JSON.parse(generalInfo.stats).packs_opened ?? 0 : 0;
@@ -56,29 +57,43 @@ export const stats: Command = {
     let cardAmountsUnique = {
       common: cards.common.length,
       rare: cards.rare.length,
+      epic: cards.epic.length,
       legendary: cards.legendary.length,
       celestial: cards.celestial.length,
+      getTotal() {
+        return this.common + this.rare + this.epic + this.legendary + this.celestial;
+      },
     };
-    let strUniqueCards = `- ${helper.emoteBazaar_Use} Unique Cards Owned: (${uniqueCards})\n> ${helper.emoteCommon} Common: ${cardAmountsUnique.common}\n> ${helper.emoteRare} Rare: ${cardAmountsUnique.rare}\n> ${helper.emoteLegendary} Legendary: ${cardAmountsUnique.legendary}\n> ${helper.emoteCelestial} Celestial: ${cardAmountsUnique.celestial}`;
+    let strUniqueCards = `- ${
+      helper.emoteBazaar_Use
+    } Unique Cards Owned: (${cardAmountsUnique.getTotal()})\n> ${helper.emoteCommon} Common: ${
+      cardAmountsUnique.common
+    }\n> ${helper.emoteRare} Rare: ${cardAmountsUnique.rare}\n> ${helper.emoteEpic} Epic: ${
+      cardAmountsUnique.epic
+    }\n> ${helper.emoteLegendary} Legendary: ${cardAmountsUnique.legendary}\n> ${
+      helper.emoteCelestial
+    } Celestial: ${cardAmountsUnique.celestial}`;
 
     let cardAmountsTotal = {
       common: cards.common.reduce((acc, card) => acc + card.amount, 0),
       rare: cards.rare.reduce((acc, card) => acc + card.amount, 0),
+      epic: cards.epic.reduce((acc, card) => acc + card.amount, 0),
       legendary: cards.legendary.reduce((acc, card) => acc + card.amount, 0),
       celestial: cards.celestial.reduce((acc, card) => acc + card.amount, 0),
       getTotal() {
-        return this.common + this.rare + this.legendary + this.celestial;
+        return this.common + this.rare + this.epic + this.legendary + this.celestial;
       },
     };
+
     let strTotalCards = `- ${
       helper.emoteBazaar_Cards
     } Total Cards Owned: (${cardAmountsTotal.getTotal()})\n> ${helper.emoteCommon} Common: ${
       cardAmountsTotal.common
-    }\n> ${helper.emoteRare} Rare: ${cardAmountsTotal.rare}\n> ${
-      helper.emoteLegendary
-    } Legendary: ${cardAmountsTotal.legendary}\n> ${helper.emoteCelestial} Celestial: ${
-      cardAmountsTotal.celestial
-    }`;
+    }\n> ${helper.emoteRare} Rare: ${cardAmountsTotal.rare}\n> ${helper.emoteEpic} Epic: ${
+      cardAmountsTotal.epic
+    }\n> ${helper.emoteLegendary} Legendary: ${cardAmountsTotal.legendary}\n> ${
+      helper.emoteCelestial
+    } Celestial: ${cardAmountsTotal.celestial}`;
 
     const dbEntry: any = db
       .prepare(`SELECT exp FROM BazaarStats WHERE ID=?`)

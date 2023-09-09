@@ -283,24 +283,26 @@ const getProgressBar = (val: number, total: number = 100) => {
 
 /**
  * Hp calculations - Each card owned
- * Common: +5 hp
- * Rare: +15 hp
- * Legendary: +50 hp
- * Celestial: +250 hp
- * Player level: level×5 hp
+ * Common - +3
+ * Rare - +15
+ * Epic - +25
+ * Legendary - +50
+ * Celestial - +250
  */
 const bz_getHealth = (inv: Inventory, level: number) => {
   let allItems = [...inv.getActiveItems(), ...inv.getItems()];
   let uniqueItems = {
     common: allItems.filter((e) => e.rarity.toLowerCase() === "common"),
     rare: allItems.filter((e) => e.rarity.toLowerCase() === "rare"),
+    epic: allItems.filter((e) => e.rarity.toLowerCase() === "epic"),
     legendary: allItems.filter((e) => e.rarity.toLowerCase() === "legendary"),
     celestial: allItems.filter((e) => e.rarity.toLowerCase() === "celestial"),
   };
 
   let totals = {
-    common: uniqueItems.common.length * 5,
+    common: uniqueItems.common.length * 3,
     rare: uniqueItems.rare.length * 15,
+    epic: uniqueItems.epic.length * 25,
     legendary: uniqueItems.legendary.length * 50,
     celestial: uniqueItems.celestial.length * 250,
   };
@@ -310,10 +312,11 @@ const bz_getHealth = (inv: Inventory, level: number) => {
 
 /**
  * Dmg Calculations - Each unique card owned
- * Common: +10 dmg
- * Rare: +15 dmg
- * Legendary: +25 dmg
- * Celestial: +50 dmg
+ * Common - +10
+ * Rare - +20
+ * Epic - +25
+ * Legendary - +30
+ * Celestial - +50
  * Player level: level×2 dmg
  */
 const bz_getDamage = (inv: Inventory, level: number) => {
@@ -321,14 +324,16 @@ const bz_getDamage = (inv: Inventory, level: number) => {
   let uniqueItems = {
     common: allItems.filter((e) => e.rarity.toLowerCase() === "common"),
     rare: allItems.filter((e) => e.rarity.toLowerCase() === "rare"),
+    epic: allItems.filter((e) => e.rarity.toLowerCase() === "epic"),
     legendary: allItems.filter((e) => e.rarity.toLowerCase() === "legendary"),
     celestial: allItems.filter((e) => e.rarity.toLowerCase() === "celestial"),
   };
 
   let totals = {
     common: uniqueItems.common.length * 10,
-    rare: uniqueItems.rare.length * 15,
-    legendary: uniqueItems.legendary.length * 25,
+    rare: uniqueItems.rare.length * 20,
+    epic: uniqueItems.epic.length * 25,
+    legendary: uniqueItems.legendary.length * 30,
     celestial: uniqueItems.celestial.length * 50,
   };
 
@@ -662,6 +667,7 @@ const emoteBazaar_Liquid = "<:bss:1143263099219087360>";
 
 const emoteCommon = "<:bcom:1143457091856633907>";
 const emoteRare = "<:brare:1143456990006358066>";
+const emoteEpic = "<:brare:1143456990006358066>";
 const emoteLegendary = "<:bleg:1143456863841693767>";
 const emoteCelestial = "<:bcel:1143456627480076368>";
 
@@ -718,6 +724,7 @@ export {
   emoteBazaar_Liquid,
   emoteCommon,
   emoteRare,
+  emoteEpic,
   emoteLegendary,
   emoteCelestial,
   emoteGems,
