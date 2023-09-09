@@ -5,19 +5,28 @@ import CommandOptions from "../enums/CommandOptions";
 import * as Database from "../Database";
 import { BazaarStats, Currency } from "../types/DBTypes";
 
-const updateWarEmbed = (user: any, targetUser: any, players: any, progress = true) => {
+const updateWarEmbed = (
+  user: any,
+  targetUser: any,
+  players: any,
+  progress = true
+) => {
   let embed = new EmbedBuilder()
     .setTitle(
       `<:BB_PVP:1027227607034515456> ${helper.separator} ${user.username} is heading to war!`
     )
     .setColor("Red")
-    .setThumbnail(`https://i.pinimg.com/originals/e6/3d/15/e63d154a9c6d4598c0215801a1b3de6f.gif`)
+    .setThumbnail(
+      `https://i.pinimg.com/originals/e6/3d/15/e63d154a9c6d4598c0215801a1b3de6f.gif`
+    )
     .addFields(
       {
         name: `${user.username}:`,
         value: `${helper.emotePVP} ${
           helper.separator
-        } Attack: ${players.attacker.atk.toLocaleString()}\n${helper.emoteHeart} ${
+        } Attack: ${players.attacker.atk.toLocaleString()}\n${
+          helper.emoteHeart
+        } ${
           helper.separator
         } Health: ${players.attacker.hp.toLocaleString()}/${players.attacker.max_hp.toLocaleString()}\n${helper.getProgressBar(
           players.attacker.hp,
@@ -29,7 +38,9 @@ const updateWarEmbed = (user: any, targetUser: any, players: any, progress = tru
         name: `${targetUser.username}:`,
         value: `${helper.emotePVP} ${
           helper.separator
-        } Attack: ${players.defender.atk.toLocaleString()}\n${helper.emoteHeart} ${
+        } Attack: ${players.defender.atk.toLocaleString()}\n${
+          helper.emoteHeart
+        } ${
           helper.separator
         } Health: ${players.defender.hp.toLocaleString()}/${players.defender.max_hp.toLocaleString()}\n${helper.getProgressBar(
           players.defender.hp,
@@ -76,32 +87,34 @@ export const attack: Command = {
   async execute(client: Client, interaction: CommandInteraction) {
     const db = Database.init();
     let targetUser = interaction.options.getUser("user");
-    if (!targetUser || targetUser.id === interaction.user.id)
-      return interaction.reply({
-        content: "Please mention a valid user.",
-        ephemeral: true,
-      });
-    if (targetUser.bot)
-      return interaction.reply({
-        content: "This user is a bot and cannot participate in PVP.",
-        ephemeral: true,
-      });
+    if (!targetUser) return;
+    // if (!targetUser || targetUser.id === interaction.user.id)
+    //   return interaction.reply({
+    //     content: "Please mention a valid user.",
+    //     ephemeral: true,
+    //   });
+    // if (targetUser.bot)
+    //   return interaction.reply({
+    //     content: "This user is a bot and cannot participate in PVP.",
+    //     ephemeral: true,
+    //   });
 
     const ownInv = helper.getInventoryAsObject(interaction.user.id);
     const targetInv = helper.getInventoryAsObject(targetUser.id);
 
     const selfHasCard = ownInv.getActiveItems().find((e) => e.id === 40);
     const targetHasCard = targetInv.getActiveItems().find((e) => e.id === 40);
-    if (!selfHasCard)
-      return interaction.reply({
-        content: "You have not activated the card `Colosseum` and cannot participate in PVP.",
-        ephemeral: true,
-      });
-    if (!targetHasCard)
-      return interaction.reply({
-        content: `${targetUser} has not activated the card \`Colosseum\` and cannot participate in PVP.`,
-        ephemeral: true,
-      });
+    // if (!selfHasCard)
+    //   return interaction.reply({
+    //     content:
+    //       "You have not activated the card `Colosseum` and cannot participate in PVP.",
+    //     ephemeral: true,
+    //   });
+    // if (!targetHasCard)
+    //   return interaction.reply({
+    //     content: `${targetUser} has not activated the card \`Colosseum\` and cannot participate in PVP.`,
+    //     ephemeral: true,
+    //   });
 
     const selfCooldownData: BazaarStats | undefined = db
       .prepare(`SELECT * FROM BazaarStats WHERE id=?`)
@@ -194,8 +207,11 @@ export const attack: Command = {
 
     if (winner === null) {
       const energy: number | null =
-        (db.prepare(`SELECT * FROM BazaarStats WHERE id=?`).get(interaction.user.id) as BazaarStats)
-          ?.energy ?? null;
+        (
+          db
+            .prepare(`SELECT * FROM BazaarStats WHERE id=?`)
+            .get(interaction.user.id) as BazaarStats
+        )?.energy ?? null;
 
       if (!energy) {
         db.prepare(`INSERT INTO BazaarStats VALUES(?,?,?,?,?)`).run(
@@ -240,7 +256,10 @@ export const attack: Command = {
 
       if (currentPoints) {
         let newTotal = currentPoints.gems + spoils.gems;
-        db.prepare(`UPDATE currency SET gems=? WHERE id=?`).run(newTotal, interaction.user.id);
+        db.prepare(`UPDATE currency SET gems=? WHERE id=?`).run(
+          newTotal,
+          interaction.user.id
+        );
       } else {
         db.prepare(`INSERT INTO currency VALUES(?,?,?,?,?,?)`).run(
           interaction.user.id,
@@ -322,6 +341,9 @@ export const attack: Command = {
       .get(interaction.user.id) as BazaarStats;
 
     let newEnergy = energy - 1 >= 0 ? energy - 1 : 0;
-    db.prepare(`UPDATE BazaarStats SET energy=? WHERE id=?`).run(newEnergy, interaction.user.id);
+    db.prepare(`UPDATE BazaarStats SET energy=? WHERE id=?`).run(
+      newEnergy,
+      interaction.user.id
+    );
   },
 };
