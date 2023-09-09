@@ -50,8 +50,9 @@ export const setitems: PrefixCommand = {
       const rarities = {
         common: rar[0],
         rare: rar[1],
-        legendary: rar[2],
-        celestial: rar[3],
+        epic: rar[2],
+        legendary: rar[3],
+        celestial: rar[4],
       };
 
       const columnNames = rows.shift();
