@@ -42,10 +42,14 @@ export const open: Command = {
     const expAmount = 30;
 
     const db = Database.init();
-    const droppool = JSON.parse(fs.readFileSync("./data/droppool.json", "utf-8"));
+    const droppool = JSON.parse(
+      fs.readFileSync("./data/droppool.json", "utf-8")
+    );
     let packCode = interaction.options.getString("code");
     let inv = helper.getInventoryAsObject(interaction.user.id);
-    let invIndex = inv.getPacks().findIndex((e) => e.code === (packCode ?? inv.getPacks()[0].code));
+    let invIndex = inv
+      .getPacks()
+      .findIndex((e) => e.code === (packCode ?? inv.getPacks()[0].code));
 
     if (invIndex < 0) {
       let packs = inv.getPacks();
@@ -63,14 +67,18 @@ export const open: Command = {
     );
     if (dropPoolIndex < 0)
       return interaction.reply({
-        content: `There is no pack with the id \`${packCode ?? inv.getPacks()[0].code}\``,
+        content: `There is no pack with the id \`${
+          packCode ?? inv.getPacks()[0].code
+        }\``,
         ephemeral: true,
       });
 
     const hasZimosCard =
-      [...inv.getItems(), ...inv.getActiveItems()].find((e) => e.id === 43) !== undefined;
+      [...inv.getItems(), ...inv.getActiveItems()].find((e) => e.id === 43) !==
+      undefined;
     const hasMortemCard =
-      [...inv.getItems(), ...inv.getActiveItems()].find((e) => e.id === 48) !== undefined;
+      [...inv.getItems(), ...inv.getActiveItems()].find((e) => e.id === 48) !==
+      undefined;
 
     await interaction.deferReply();
     let cardPool = {
@@ -81,11 +89,15 @@ export const open: Command = {
         chance: parseFloat(droppool[dropPoolIndex].rarities.common),
       },
       rare: {
-        pool: droppool[dropPoolIndex].items.filter((e: Item) => e.rarity.toLowerCase() === "rare"),
+        pool: droppool[dropPoolIndex].items.filter(
+          (e: Item) => e.rarity.toLowerCase() === "rare"
+        ),
         chance: parseFloat(droppool[dropPoolIndex].rarities.rare),
       },
       epic: {
-        pool: droppool[dropPoolIndex].items.filter((e: Item) => e.rarity.toLowerCase() === "epic"),
+        pool: droppool[dropPoolIndex].items.filter(
+          (e: Item) => e.rarity.toLowerCase() === "epic"
+        ),
         chance: parseFloat(droppool[dropPoolIndex].rarities.epic),
       },
       legendary: {
@@ -106,7 +118,10 @@ export const open: Command = {
       cardPool.legendary.chance *= 1.1;
       cardPool.rare.chance *= 1.1;
       cardPool.common.chance =
-        1 - (cardPool.rare.chance + cardPool.legendary.chance + cardPool.celestial.chance);
+        1 -
+        (cardPool.rare.chance +
+          cardPool.legendary.chance +
+          cardPool.celestial.chance);
     }
 
     let rewardAmount = 3;
@@ -117,10 +132,14 @@ export const open: Command = {
       let roll = Math.random() * 1;
 
       let reward: Item;
-      if (roll <= cardPool.celestial.chance) reward = helper.randomPick(cardPool.celestial.pool);
+      if (roll <= cardPool.celestial.chance)
+        reward = helper.randomPick(cardPool.celestial.pool);
       else if (roll <= cardPool.legendary.chance)
         reward = helper.randomPick(cardPool.legendary.pool);
-      else if (roll <= cardPool.rare.chance) reward = helper.randomPick(cardPool.rare.pool);
+      else if (roll <= cardPool.epic.chance)
+        reward = helper.randomPick(cardPool.epic.pool);
+      else if (roll <= cardPool.rare.chance)
+        reward = helper.randomPick(cardPool.rare.pool);
       else reward = helper.randomPick(cardPool.common.pool);
 
       if (!rewards.some((e) => e.id === reward.id)) rewards.push(reward);
