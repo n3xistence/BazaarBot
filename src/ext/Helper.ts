@@ -45,16 +45,10 @@ const wrapInColor = (color: string, str: string): string => {
 
 const getUNIXStamp = () => Math.floor(new Date().getTime() / 1000);
 
-const randomPick = (array: Array<any>): any =>
-  array[Math.floor(Math.random() * array.length)];
+const randomPick = (array: Array<any>): any => array[Math.floor(Math.random() * array.length)];
 
-const handleToggleCard = (
-  card: Item,
-  db: any,
-  interaction: CommandInteraction
-) => {
-  if (!(card instanceof Item))
-    throw Error("Invalid Argument: Must be an instance of Item.");
+const handleToggleCard = (card: Item, db: any, interaction: CommandInteraction) => {
+  if (!(card instanceof Item)) throw Error("Invalid Argument: Must be an instance of Item.");
 
   let returnValue;
   let cardId = card.id;
@@ -74,8 +68,7 @@ const handleCustomCardUsage = (
   interaction: CommandInteraction,
   client: Client
 ) => {
-  if (!(card instanceof Item))
-    throw Error("Invalid Argument: Must be an instance of Item.");
+  if (!(card instanceof Item)) throw Error("Invalid Argument: Must be an instance of Item.");
 
   let cardId = card.id;
   let returnValue;
@@ -132,13 +125,8 @@ const handleCustomCardUsage = (
   return returnValue;
 };
 
-const handlePostTaskCard = (
-  card: Item,
-  db: any,
-  interaction: CommandInteraction
-) => {
-  if (!(card instanceof Item))
-    throw Error("Invalid Argument: Must be an instance of Item.");
+const handlePostTaskCard = (card: Item, db: any, interaction: CommandInteraction) => {
+  if (!(card instanceof Item)) throw Error("Invalid Argument: Must be an instance of Item.");
 
   let cardId = card.id;
   switch (cardId) {
@@ -163,20 +151,14 @@ const handlePostTaskCard = (
 };
 
 const getInventoryAsObject = (userId: string) => {
-  const currentInventories = JSON.parse(
-    fs.readFileSync("./data/inventories.json", "utf-8")
-  );
+  const currentInventories = JSON.parse(fs.readFileSync("./data/inventories.json", "utf-8"));
 
   let userObject = currentInventories.find((e: any) => e.userId === userId);
-  return userObject
-    ? new Inventory().fromJSON(userObject.inventory)
-    : new Inventory();
+  return userObject ? new Inventory().fromJSON(userObject.inventory) : new Inventory();
 };
 
 const updateInventoryRef = (inv: Inventory, user: any) => {
-  const currentInventories = JSON.parse(
-    fs.readFileSync("./data/inventories.json", "utf-8")
-  );
+  const currentInventories = JSON.parse(fs.readFileSync("./data/inventories.json", "utf-8"));
 
   let index = currentInventories.findIndex((e: any) => e.userId === user.id);
   if (index < 0) {
@@ -188,28 +170,20 @@ const updateInventoryRef = (inv: Inventory, user: any) => {
   } else {
     currentInventories[index].inventory = inv;
   }
-  fs.writeFileSync(
-    "./data/inventories.json",
-    JSON.stringify(currentInventories, null, "\t")
-  );
+  fs.writeFileSync("./data/inventories.json", JSON.stringify(currentInventories, null, "\t"));
 };
 
 const updateTotalPacksOpened = (user: any, db: any, amount: number = 1) => {
   const exp = 20;
 
-  const currentStats = db
-    .prepare(`SELECT * FROM BazaarStats WHERE id=?`)
-    .get(user.id);
+  const currentStats = db.prepare(`SELECT * FROM BazaarStats WHERE id=?`).get(user.id);
 
   if (currentStats) {
     const stats = JSON.parse(currentStats.stats);
     let newTotal = parseInt(stats.packs_opened ?? 0) + amount;
     stats.packs_opened = newTotal;
 
-    db.prepare(`UPDATE BazaarStats SET stats=? WHERE id=?`).run(
-      JSON.stringify(stats),
-      user.id
-    );
+    db.prepare(`UPDATE BazaarStats SET stats=? WHERE id=?`).run(JSON.stringify(stats), user.id);
   } else {
     db.prepare(`INSERT INTO BazaarStats VALUES(?,?,?,?,?)`).run(
       user.id,
@@ -227,9 +201,7 @@ const updateTotalEXP = (
   amount: number,
   value: number = 100
 ) => {
-  const currentEXP = db
-    .prepare(`SELECT * FROM BazaarStats WHERE id=?`)
-    .get(interaction.user.id);
+  const currentEXP = db.prepare(`SELECT * FROM BazaarStats WHERE id=?`).get(interaction.user.id);
 
   if (currentEXP) {
     let formerLevel = getLevelData(currentEXP.exp).level;
@@ -249,10 +221,7 @@ const updateTotalEXP = (
     }
 
     let newTotal = parseInt(currentEXP.exp) + amount * value;
-    db.prepare(`UPDATE BazaarStats SET exp=? WHERE id=?`).run(
-      newTotal,
-      interaction.user.id
-    );
+    db.prepare(`UPDATE BazaarStats SET exp=? WHERE id=?`).run(newTotal, interaction.user.id);
   } else {
     if (getLevelData(value).level >= 1)
       interaction.channel?.send({
@@ -263,9 +232,7 @@ const updateTotalEXP = (
             .setDescription(
               `${emoteApprove} ${separator} ${
                 interaction.user
-              } just leveled up! They are now level ${
-                getLevelData(value).level
-              }`
+              } just leveled up! They are now level ${getLevelData(value).level}`
             ),
         ],
       });
@@ -281,20 +248,13 @@ const updateTotalEXP = (
 };
 
 const addScrap = (user: any, db: any, amount: number) => {
-  const currentScrap = db
-    .prepare(`SELECT * FROM currency WHERE id=?`)
-    .get(user.id);
+  const currentScrap = db.prepare(`SELECT * FROM currency WHERE id=?`).get(user.id);
 
   if (currentScrap) {
     let newTotal = parseInt(currentScrap.scrap) + amount;
     db.prepare(`UPDATE currency SET scrap=? WHERE id=?`).run(newTotal, user.id);
   } else {
-    db.prepare(`INSERT INTO currency VALUES(?,?,?,?)`).run(
-      user.id,
-      0,
-      0,
-      amount
-    );
+    db.prepare(`INSERT INTO currency VALUES(?,?,?,?)`).run(user.id, 0, 0, amount);
   }
 };
 
@@ -346,19 +306,11 @@ const bz_getHealth = (inv: Inventory, level: number) => {
     common: uniqueItems.common.reduce((acc, item) => acc + item.amount, 0) * 3,
     rare: uniqueItems.rare.reduce((acc, item) => acc + item.amount, 0) * 15,
     epic: uniqueItems.epic.reduce((acc, item) => acc + item.amount, 0) * 25,
-    legendary:
-      uniqueItems.legendary.reduce((acc, item) => acc + item.amount, 0) * 50,
-    celestial:
-      uniqueItems.celestial.reduce((acc, item) => acc + item.amount, 0) * 250,
+    legendary: uniqueItems.legendary.reduce((acc, item) => acc + item.amount, 0) * 50,
+    celestial: uniqueItems.celestial.reduce((acc, item) => acc + item.amount, 0) * 250,
   };
 
-  return (
-    totals.common +
-    totals.rare +
-    totals.legendary +
-    totals.celestial +
-    level * 2
-  );
+  return totals.common + totals.rare + totals.legendary + totals.celestial + level * 2;
 };
 
 /**
@@ -381,17 +333,14 @@ const bz_getDamage = (inv: Inventory, level: number) => {
   };
 
   let totals = {
-    common: uniqueItems.common.reduce((acc, item) => acc + item.amount, 0) * 10,
-    rare: uniqueItems.rare.reduce((acc, item) => acc + item.amount, 0) * 20,
-    epic: uniqueItems.epic.reduce((acc, item) => acc + item.amount, 0) * 25,
-    legendary:
-      uniqueItems.legendary.reduce((acc, item) => acc + item.amount, 0) * 30,
-    celestial:
-      uniqueItems.celestial.reduce((acc, item) => acc + item.amount, 0) * 50,
+    common: uniqueItems.common.length * 10,
+    rare: uniqueItems.rare.length * 20,
+    epic: uniqueItems.epic.length * 25,
+    legendary: uniqueItems.legendary.length * 30,
+    celestial: uniqueItems.celestial.length * 50,
   };
 
-  const totalDamage =
-    Object.values(totals).reduce((acc, val) => acc + val, 0) + level * 2;
+  const totalDamage = Object.values(totals).reduce((acc, val) => acc + val, 0) + level * 2;
   const rng = Math.random() * 2 - 1;
   const tenPercent = totalDamage * 0.1;
 
@@ -399,9 +348,7 @@ const bz_getDamage = (inv: Inventory, level: number) => {
 };
 
 const userUsedPostCard = (user: any, db: any) => {
-  let currentTask = db
-    .prepare(`SELECT * FROM Bazaar WHERE active='true'`)
-    .all();
+  let currentTask = db.prepare(`SELECT * FROM Bazaar WHERE active='true'`).all();
   if (currentTask.length < 1) return false;
   else currentTask = currentTask[0];
 
@@ -410,9 +357,7 @@ const userUsedPostCard = (user: any, db: any) => {
 };
 
 const updatePostCardUsed = (card: Item, db: any, user: any) => {
-  let currentTask = db
-    .prepare(`SELECT * FROM Bazaar WHERE active='true'`)
-    .all();
+  let currentTask = db.prepare(`SELECT * FROM Bazaar WHERE active='true'`).all();
   if (currentTask.length < 1) return;
   else currentTask = currentTask[0];
 
@@ -432,9 +377,7 @@ const updatePostCardUsed = (card: Item, db: any, user: any) => {
 };
 
 const updatePVPStats = (user: any, db: any, result: number) => {
-  const currentStats = db
-    .prepare(`SELECT * FROM BazaarStats WHERE id=?`)
-    .get(user.id);
+  const currentStats = db.prepare(`SELECT * FROM BazaarStats WHERE id=?`).get(user.id);
 
   if (currentStats) {
     let stats = JSON.parse(currentStats.stats); // fill the obect with the default values in case user has not participated in pvp yet
@@ -446,10 +389,7 @@ const updatePVPStats = (user: any, db: any, result: number) => {
     if (result > 0) stats.pvp_stats.wins = stats.pvp_stats.wins + result;
     else stats.pvp_stats.losses = stats.pvp_stats.losses + Math.abs(result);
 
-    db.prepare(`UPDATE BazaarStats SET stats=? WHERE id=?`).run(
-      JSON.stringify(stats),
-      user.id
-    );
+    db.prepare(`UPDATE BazaarStats SET stats=? WHERE id=?`).run(JSON.stringify(stats), user.id);
   } else {
     let stats = {
       pvp_stats: {
@@ -468,19 +408,14 @@ const updatePVPStats = (user: any, db: any, result: number) => {
 };
 
 const updateTasksWon = (user: any, db: any) => {
-  const currentStats = db
-    .prepare(`SELECT * FROM BazaarStats WHERE id=?`)
-    .get(user.id);
+  const currentStats = db.prepare(`SELECT * FROM BazaarStats WHERE id=?`).get(user.id);
 
   if (currentStats) {
     const stats = JSON.parse(currentStats.stats);
     let newTotal = parseInt(stats.tasks_won ?? 0) + 1;
     stats.tasks_won = newTotal;
 
-    db.prepare(`UPDATE BazaarStats SET stats=? WHERE id=?`).run(
-      JSON.stringify(stats),
-      user.id
-    );
+    db.prepare(`UPDATE BazaarStats SET stats=? WHERE id=?`).run(JSON.stringify(stats), user.id);
   } else {
     db.prepare(`INSERT INTO BazaarStats VALUES(?,?,?,?,?)`).run(
       user.id,
@@ -493,19 +428,14 @@ const updateTasksWon = (user: any, db: any) => {
 };
 
 const updateCardsLiquidated = (user: any, db: any, amount: number = 1) => {
-  const currentStats = db
-    .prepare(`SELECT * FROM BazaarStats WHERE id=?`)
-    .get(user.id);
+  const currentStats = db.prepare(`SELECT * FROM BazaarStats WHERE id=?`).get(user.id);
 
   if (currentStats) {
     const stats = JSON.parse(currentStats.stats);
     let newTotal = parseInt(stats.cards_liquidated ?? 0) + amount;
     stats.cards_liquidated = newTotal;
 
-    db.prepare(`UPDATE BazaarStats SET stats=? WHERE id=?`).run(
-      JSON.stringify(stats),
-      user.id
-    );
+    db.prepare(`UPDATE BazaarStats SET stats=? WHERE id=?`).run(JSON.stringify(stats), user.id);
   } else {
     db.prepare(`INSERT INTO BazaarStats VALUES(?,?,?,?,?)`).run(
       user.id,
@@ -528,9 +458,7 @@ const getModalInput = (
       .setLabel(options.label ?? "User Input")
       .setStyle(TextInputStyle.Short);
 
-    const actionRow = new ActionRowBuilder<TextInputBuilder>().addComponents(
-      defaultField
-    );
+    const actionRow = new ActionRowBuilder<TextInputBuilder>().addComponents(defaultField);
 
     const modal = new ModalBuilder()
       .setCustomId("default_input_modal")
@@ -543,9 +471,7 @@ const getModalInput = (
       if (!modalInteraction.isModalSubmit()) return;
       if (modalInteraction.customId !== "default_input_modal") return;
 
-      const input = modalInteraction.fields.getTextInputValue(
-        "default_input_field"
-      );
+      const input = modalInteraction.fields.getTextInputValue("default_input_field");
 
       client.off("interactionCreate", listener);
 
@@ -563,11 +489,7 @@ const getModalInput = (
   });
 };
 
-const updateItemProperties = (
-  inventories: Array<any>,
-  item: ItemType,
-  { global = true }
-) => {
+const updateItemProperties = (inventories: Array<any>, item: ItemType, { global = true }) => {
   if (!global) return;
 
   for (const entry of inventories) {
@@ -582,8 +504,7 @@ const updateItemProperties = (
       inv.activeItems[activeIndex].amount = oldItem.amount;
       if (typeof newItem.cardType !== "string") {
         newItem.cardType.cooldown.current =
-          oldItem.cardType.cooldown?.current ??
-          newItem.cardType.cooldown.current;
+          oldItem.cardType.cooldown?.current ?? newItem.cardType.cooldown.current;
       }
 
       if (
@@ -592,8 +513,7 @@ const updateItemProperties = (
       ) {
         inv.moveToInventory(inv.activeItems[activeIndex]);
 
-        if (typeof newItem.cardType !== "string")
-          newItem.cardType.cooldown.current = 0;
+        if (typeof newItem.cardType !== "string") newItem.cardType.cooldown.current = 0;
       }
 
       updateInventoryRef(inv, { id: entry.userId, username: entry.userName });
@@ -608,23 +528,17 @@ const updateItemProperties = (
       inv.list[generalIndex].amount = oldItem.amount;
       if (typeof newItem.cardType !== "string") {
         newItem.cardType.cooldown.current =
-          oldItem.cardType.cooldown?.current ??
-          newItem.cardType.cooldown.current;
+          oldItem.cardType.cooldown?.current ?? newItem.cardType.cooldown.current;
       }
 
-      if (inv.list[generalIndex].cardType === "passive")
-        inv.setActiveItem(inv.list[generalIndex]);
+      if (inv.list[generalIndex].cardType === "passive") inv.setActiveItem(inv.list[generalIndex]);
 
       updateInventoryRef(inv, { id: entry.userId, username: entry.userName });
     }
   }
 };
 
-const updatePackProperties = (
-  inventories: Array<any>,
-  pack: Pack,
-  { global = true }
-) => {
+const updatePackProperties = (inventories: Array<any>, pack: Pack, { global = true }) => {
   if (!global) return;
 
   for (const entry of inventories) {
