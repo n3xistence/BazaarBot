@@ -87,34 +87,33 @@ export const attack: Command = {
   async execute(client: Client, interaction: CommandInteraction) {
     const db = Database.init();
     let targetUser = interaction.options.getUser("user");
-    if (!targetUser) return;
-    // if (!targetUser || targetUser.id === interaction.user.id)
-    //   return interaction.reply({
-    //     content: "Please mention a valid user.",
-    //     ephemeral: true,
-    //   });
-    // if (targetUser.bot)
-    //   return interaction.reply({
-    //     content: "This user is a bot and cannot participate in PVP.",
-    //     ephemeral: true,
-    //   });
+    if (!targetUser || targetUser.id === interaction.user.id)
+      return interaction.reply({
+        content: "Please mention a valid user.",
+        ephemeral: true,
+      });
+    if (targetUser.bot)
+      return interaction.reply({
+        content: "This user is a bot and cannot participate in PVP.",
+        ephemeral: true,
+      });
 
     const ownInv = helper.getInventoryAsObject(interaction.user.id);
     const targetInv = helper.getInventoryAsObject(targetUser.id);
 
     const selfHasCard = ownInv.getActiveItems().find((e) => e.id === 40);
     const targetHasCard = targetInv.getActiveItems().find((e) => e.id === 40);
-    // if (!selfHasCard)
-    //   return interaction.reply({
-    //     content:
-    //       "You have not activated the card `Colosseum` and cannot participate in PVP.",
-    //     ephemeral: true,
-    //   });
-    // if (!targetHasCard)
-    //   return interaction.reply({
-    //     content: `${targetUser} has not activated the card \`Colosseum\` and cannot participate in PVP.`,
-    //     ephemeral: true,
-    //   });
+    if (!selfHasCard)
+      return interaction.reply({
+        content:
+          "You have not activated the card `Colosseum` and cannot participate in PVP.",
+        ephemeral: true,
+      });
+    if (!targetHasCard)
+      return interaction.reply({
+        content: `${targetUser} has not activated the card \`Colosseum\` and cannot participate in PVP.`,
+        ephemeral: true,
+      });
 
     const selfCooldownData: BazaarStats | undefined = db
       .prepare(`SELECT * FROM BazaarStats WHERE id=?`)
