@@ -23,12 +23,10 @@ export const stats: Command = {
     if (!targetUser) targetUser = interaction.user;
 
     const db = Database.init();
-    let generalInfo: BazaarStats = db
-      .prepare(`SELECT * FROM BazaarStats WHERE id=?`)
-      .get(targetUser.id) as BazaarStats;
+    let generalInfo = await db.query(`SELECT * FROM BazaarStats WHERE id=$1`, [targetUser.id]);
+
     let inv = helper.getInventoryAsObject(targetUser.id);
     let items = [...inv.getItems(), ...inv.getActiveItems()];
-    let uniqueCards = items.length;
 
     let cards = {
       common: [...items.filter((e) => e.rarity.toLowerCase() === "common")],
@@ -38,12 +36,15 @@ export const stats: Command = {
       celestial: [...items.filter((e) => e.rarity.toLowerCase() === "celestial")],
     };
 
-    let totalPacksOpened = generalInfo ? JSON.parse(generalInfo.stats).packs_opened ?? 0 : 0;
-    let tasksWon = generalInfo ? JSON.parse(generalInfo.stats).tasks_won ?? 0 : 0;
+    let totalPacksOpened =
+      generalInfo.rows.length > 0 ? JSON.parse(generalInfo.rows[0].stats).packs_opened ?? 0 : 0;
+    let tasksWon =
+      generalInfo.rows.length > 0 ? JSON.parse(generalInfo.rows[0].stats).tasks_won ?? 0 : 0;
 
-    let pvpStats = generalInfo
-      ? JSON.parse(generalInfo.stats).pvp_stats ?? { wins: 0, losses: 0 }
-      : { wins: 0, losses: 0 };
+    let pvpStats =
+      generalInfo.rows.length > 0
+        ? JSON.parse(generalInfo.rows[0].stats).pvp_stats ?? { wins: 0, losses: 0 }
+        : { wins: 0, losses: 0 };
     const totalFights = pvpStats.wins + pvpStats.losses;
 
     let strStats = `- ${helper.emoteBazaar_Pack} Total Packs Opened: ${totalPacksOpened}\n- ${
@@ -95,11 +96,9 @@ export const stats: Command = {
       helper.emoteCelestial
     } Celestial: ${cardAmountsTotal.celestial}`;
 
-    const dbEntry: any = db
-      .prepare(`SELECT exp FROM BazaarStats WHERE ID=?`)
-      .get(targetUser.id) ?? {
-      exp: 0,
-    };
+    let dbEntry: any = await db.query(`SELECT exp FROM BazaarStats WHERE ID=$1`, [targetUser.id]);
+    if (dbEntry.rows.length === 0) dbEntry.exp = 0;
+    else dbEntry = dbEntry.rows[0];
 
     let levelData = helper.getLevelData(dbEntry.exp);
     let expNeeded = (levelData.level + 1) * 50;

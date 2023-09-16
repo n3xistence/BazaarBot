@@ -63,16 +63,16 @@ export const buy: Command = {
         ephemeral: true,
       });
 
-    let balance: any = db
-      .prepare(`SELECT ${currency} FROM currency WHERE id=?`)
-      .get(interaction.user.id);
-    if (!balance)
+    let balance: any = await db.query(`SELECT ${currency} FROM currency WHERE id=$1`, [
+      interaction.user.id,
+    ]);
+    if (balance.rows.length === 0)
       return interaction.reply({
         content: `You have no points.`,
         ephemeral: true,
       });
 
-    balance = balance[currency];
+    balance = balance.rows[0][currency];
     if (item.cost[currency] * amount > balance)
       return interaction.reply({
         content: `You can not afford this item. (${balance}/${
@@ -82,7 +82,7 @@ export const buy: Command = {
       });
 
     let newBalance = balance - item.cost[currency] * amount;
-    db.prepare(`UPDATE currency SET ${currency}=? WHERE id=?`).run(newBalance, interaction.user.id);
+    db.query(`UPDATE currency SET ${currency}=$1 WHERE id=$2`, [newBalance, interaction.user.id]);
 
     const inventories = JSON.parse(fs.readFileSync("./data/inventories.json"));
 

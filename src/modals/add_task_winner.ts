@@ -24,18 +24,16 @@ export const add_task_winner: ModalInteraction = {
         ephemeral: true,
       });
 
-    const currentTask: Bazaar = db
-      .prepare(`SELECT * FROM Bazaar WHERE active='true'`)
-      .get() as Bazaar;
+    const currentTask = await db.query(`SELECT * FROM Bazaar WHERE active='true'`);
 
-    if (!currentTask)
+    if (currentTask.rows.length === 0)
       return interaction.reply({
         content: `There is no active task.`,
         ephemeral: true,
       });
 
-    const currentWinners = JSON.parse(currentTask.chosen_winners);
-    if (currentTask.winners === currentWinners.length)
+    const currentWinners = JSON.parse(currentTask.rows[0].chosen_winners);
+    if (currentTask.rows[0].winners === currentWinners.length)
       return interaction.reply({
         content: `You cannot provide more winners than the task allows.`,
         ephemeral: true,
@@ -56,10 +54,10 @@ export const add_task_winner: ModalInteraction = {
           ]
         : [{ id: user.id }];
 
-    db.prepare(`UPDATE Bazaar SET chosen_winners=? WHERE id=?`).run(
+    db.query(`UPDATE Bazaar SET chosen_winners=$1 WHERE id=$2`, [
       JSON.stringify(newWinners),
-      currentTask.id
-    );
+      currentTask.rows[0].id,
+    ]);
 
     let denom =
       newWinners.length === 1
@@ -70,7 +68,9 @@ export const add_task_winner: ModalInteraction = {
         ? "rd"
         : "th";
 
-    const msg = await interaction.channel.messages.fetch(currentTask.messageID).catch(console.log);
+    const msg = await interaction.channel.messages
+      .fetch(currentTask.rows[0].messageID)
+      .catch(console.log);
     if (!msg)
       return interaction.reply({
         content: `Error fetching Task Embed`,
@@ -78,14 +78,16 @@ export const add_task_winner: ModalInteraction = {
       });
 
     let newTaskEmbed = new EmbedBuilder()
-      .setTitle(`${helper.emoteBazaar} ${helper.separator} Bazaar Task #${currentTask.id}`)
+      .setTitle(`${helper.emoteBazaar} ${helper.separator} Bazaar Task #${currentTask.rows[0].id}`)
       .setColor("DarkPurple")
       .setDescription(
-        `Winners: ${newWinners.length}/${currentTask.winners}\n${newWinners
+        `Winners: ${newWinners.length}/${currentTask.rows[0].winners}\n${newWinners
           .map((e, index) => `${index}. <@${e.id}>`)
-          .join("\n")}\n\nStarted: <t:${parseInt(currentTask.timestamp)}:R>\nRewards: ${
-          currentTask.amount
-        } ${currentTask.type}\n\n> ${currentTask.description}\n\n${currentTask.notes}`
+          .join("\n")}\n\nStarted: <t:${parseInt(currentTask.rows[0].timestamp)}:R>\nRewards: ${
+          currentTask.rows[0].amount
+        } ${currentTask.rows[0].type}\n\n> ${currentTask.rows[0].description}\n\n${
+          currentTask.rows[0].notes
+        }`
       );
     msg.edit({ embeds: [newTaskEmbed] });
 

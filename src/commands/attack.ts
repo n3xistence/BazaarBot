@@ -5,28 +5,19 @@ import CommandOptions from "../enums/CommandOptions";
 import * as Database from "../Database";
 import { BazaarStats, Currency } from "../types/DBTypes";
 
-const updateWarEmbed = (
-  user: any,
-  targetUser: any,
-  players: any,
-  progress = true
-) => {
+const updateWarEmbed = (user: any, targetUser: any, players: any, progress = true) => {
   let embed = new EmbedBuilder()
     .setTitle(
       `<:BB_PVP:1027227607034515456> ${helper.separator} ${user.username} is heading to war!`
     )
     .setColor("Red")
-    .setThumbnail(
-      `https://i.pinimg.com/originals/e6/3d/15/e63d154a9c6d4598c0215801a1b3de6f.gif`
-    )
+    .setThumbnail(`https://i.pinimg.com/originals/e6/3d/15/e63d154a9c6d4598c0215801a1b3de6f.gif`)
     .addFields(
       {
         name: `${user.username}:`,
         value: `${helper.emotePVP} ${
           helper.separator
-        } Attack: ${players.attacker.atk.toLocaleString()}\n${
-          helper.emoteHeart
-        } ${
+        } Attack: ${players.attacker.atk.toLocaleString()}\n${helper.emoteHeart} ${
           helper.separator
         } Health: ${players.attacker.hp.toLocaleString()}/${players.attacker.max_hp.toLocaleString()}\n${helper.getProgressBar(
           players.attacker.hp,
@@ -38,9 +29,7 @@ const updateWarEmbed = (
         name: `${targetUser.username}:`,
         value: `${helper.emotePVP} ${
           helper.separator
-        } Attack: ${players.defender.atk.toLocaleString()}\n${
-          helper.emoteHeart
-        } ${
+        } Attack: ${players.defender.atk.toLocaleString()}\n${helper.emoteHeart} ${
           helper.separator
         } Health: ${players.defender.hp.toLocaleString()}/${players.defender.max_hp.toLocaleString()}\n${helper.getProgressBar(
           players.defender.hp,
@@ -105,8 +94,7 @@ export const attack: Command = {
     const targetHasCard = targetInv.getActiveItems().find((e) => e.id === 40);
     if (!selfHasCard)
       return interaction.reply({
-        content:
-          "You have not activated the card `Colosseum` and cannot participate in PVP.",
+        content: "You have not activated the card `Colosseum` and cannot participate in PVP.",
         ephemeral: true,
       });
     if (!targetHasCard)
@@ -115,51 +103,53 @@ export const attack: Command = {
         ephemeral: true,
       });
 
-    const selfCooldownData: BazaarStats | undefined = db
-      .prepare(`SELECT * FROM BazaarStats WHERE id=?`)
-      .get(interaction.user.id) as BazaarStats | undefined;
+    const selfCooldownData = await db.query(`SELECT * FROM BazaarStats WHERE id=$1`, [
+      interaction.user.id,
+    ]);
 
-    if (selfCooldownData && selfCooldownData.energy <= 0)
+    if (selfCooldownData.rows.length > 0 && selfCooldownData.rows[0].energy <= 0)
       return interaction.reply({
         content: `You don't have enough energy to do this. You will regain one energy point <t:${getUnixTimestampOfNextHalfHour()}:R>.`,
         ephemeral: true,
       });
 
     if (
-      selfCooldownData &&
-      JSON.parse(selfCooldownData.battle_log).global &&
-      helper.getUNIXStamp() < JSON.parse(selfCooldownData.battle_log).global
+      selfCooldownData.rows.length > 0 &&
+      JSON.parse(selfCooldownData.rows[0].battle_log).global &&
+      helper.getUNIXStamp() < JSON.parse(selfCooldownData.rows[0].battle_log).global
     )
       return interaction.reply({
         content: `You cannot enter combat at the moment. Try again <t:${
-          JSON.parse(selfCooldownData.battle_log).global
+          JSON.parse(selfCooldownData.rows[0].battle_log).global
         }:R>`,
         ephemeral: true,
       });
 
-    const targetCooldownData: BazaarStats | undefined = db
-      .prepare(`SELECT * FROM BazaarStats WHERE id=?`)
-      .get(targetUser.id) as BazaarStats | undefined;
+    const targetCooldownData = await db.query(`SELECT * FROM BazaarStats WHERE id=$1`, [
+      targetUser.id,
+    ]);
 
     if (
-      targetCooldownData &&
-      JSON.parse(targetCooldownData.battle_log).personal &&
-      helper.getUNIXStamp() < JSON.parse(targetCooldownData.battle_log).personal
+      targetCooldownData.rows.length > 0 &&
+      JSON.parse(targetCooldownData.rows[0].battle_log).personal &&
+      helper.getUNIXStamp() < JSON.parse(targetCooldownData.rows[0].battle_log).personal
     )
       return interaction.reply({
         content: `You may not enter combat with ${targetUser}. Try again <t:${
-          JSON.parse(targetCooldownData.battle_log).personal
+          JSON.parse(targetCooldownData.rows[0].battle_log).personal
         }:R>`,
         ephemeral: true,
       });
 
-    const ownExp: BazaarStats | { exp: number } | undefined = (db
-      .prepare(`SELECT * FROM BazaarStats WHERE id=?`)
-      .get(interaction.user.id) as BazaarStats | undefined) ?? { exp: 0 };
+    let ownExp: any = await db.query(`SELECT * FROM BazaarStats WHERE id=$1`, [
+      interaction.user.id,
+    ]);
+    if (ownExp.rows.length === 0) ownExp = { exp: 0 };
+    else ownExp = ownExp.rows[0].exp;
 
-    const targetExp: BazaarStats | { exp: number } | undefined = (db
-      .prepare(`SELECT * FROM BazaarStats WHERE id=?`)
-      .get(targetUser.id) as BazaarStats | undefined) ?? { exp: 0 };
+    let targetExp: any = await db.query(`SELECT * FROM BazaarStats WHERE id=$1`, [targetUser.id]);
+    if (targetExp.rows.length === 0) targetExp = { exp: 0 };
+    else targetExp = targetExp.rows[0].exp;
 
     const ownLevel = helper.getLevelData(ownExp.exp).level;
     const targetLevel = helper.getLevelData(targetExp.exp).level;
@@ -205,15 +195,12 @@ export const attack: Command = {
     }
 
     if (winner === null) {
-      const energy: number | null =
-        (
-          db
-            .prepare(`SELECT * FROM BazaarStats WHERE id=?`)
-            .get(interaction.user.id) as BazaarStats
-        )?.energy ?? null;
+      const query = `SELECT * FROM BazaarStats WHERE id=$1`;
+      const energy = await db.query(query, [interaction.user.id]);
 
-      if (!energy) {
-        db.prepare(`INSERT INTO BazaarStats VALUES(?,?,?,?,?)`).run(
+      if (energy.rows.length > 0) {
+        const query = `INSERT INTO BazaarStats VALUES($1,$2,$3,$4,$5)`;
+        db.query(query, [
           interaction.user.id,
           JSON.stringify({}),
           0,
@@ -221,13 +208,12 @@ export const attack: Command = {
           JSON.stringify({
             global: null,
             personal: null,
-          })
-        );
+          }),
+        ]);
       } else {
-        db.prepare(`UPDATE BazaarStats SET energy=? WHERE id=?`).run(
-          energy - 1,
-          interaction.user.id
-        );
+        let newEnergy = energy.rows[0].energy - 1;
+        const query = `UPDATE BazaarStats SET energy=$1 WHERE id=$2`;
+        db.query(query, [newEnergy, interaction.user.id]);
       }
 
       return interaction.editReply({
@@ -249,39 +235,34 @@ export const attack: Command = {
       helper.updateTotalEXP(interaction, db, 1, spoils.exp);
       if (spoils.gems < 0) spoils.gems = 0;
 
-      const currentPoints: Currency | undefined = db
-        .prepare(`SELECT * FROM currency WHERE id=?`)
-        .get(interaction.user.id) as Currency | undefined;
+      let query = `SELECT * FROM currency WHERE id=$1`;
+      const currentPoints = await db.query(query, [interaction.user.id]);
 
-      if (currentPoints) {
-        let newTotal = currentPoints.gems + spoils.gems;
-        db.prepare(`UPDATE currency SET gems=? WHERE id=?`).run(
-          newTotal,
-          interaction.user.id
-        );
+      if (currentPoints.rows.length > 0) {
+        let newTotal = currentPoints.rows[0].gems + spoils.gems;
+
+        const query = `UPDATE currency SET gems=$1 WHERE id=$2`;
+        db.query(query, [newTotal, interaction.user.id]);
       } else {
-        db.prepare(`INSERT INTO currency VALUES(?,?,?,?,?,?)`).run(
-          interaction.user.id,
-          0,
-          spoils.gems,
-          0
-        );
+        const query = `INSERT INTO currency VALUES($1,$2,$3,$4)`;
+        db.query(query, [interaction.user.id, 0, spoils.gems, 0]);
       }
 
-      const targetCooldown: BazaarStats | undefined = db
-        .prepare(`SELECT * FROM BazaarStats WHERE id=?`)
-        .get(targetUser.id) as BazaarStats | undefined;
+      query = `SELECT * FROM BazaarStats WHERE id=$1`;
+      const targetCooldown = await db.query(query, [targetUser.id]);
 
-      if (targetCooldown) {
-        db.prepare(`UPDATE BazaarStats SET battle_log=? WHERE id=?`).run(
+      if (targetCooldown.rows.length > 0) {
+        const cooldown = targetCooldown.rows[0];
+        db.query(`UPDATE BazaarStats SET battle_log=$1 WHERE id=$2`, [
           JSON.stringify({
-            global: JSON.parse(targetCooldown.battle_log).global,
+            global: JSON.parse(cooldown.battle_log).global,
             personal: helper.getUNIXStamp() + 3600,
           }),
-          targetUser.id
-        );
+          targetUser.id,
+        ]);
       } else {
-        db.prepare(`INSERT INTO BazaarStats VALUES(?,?,?,?,?)`).run(
+        const query = `INSERT INTO BazaarStats VALUES($1,$2,$3,$4,$5)`;
+        db.query(query, [
           targetUser.id,
           JSON.stringify({}),
           0,
@@ -289,8 +270,8 @@ export const attack: Command = {
           JSON.stringify({
             global: null,
             personal: helper.getUNIXStamp() + 3600,
-          })
-        );
+          }),
+        ]);
       }
 
       helper.updatePVPStats(interaction.user, db, 1);
@@ -306,20 +287,20 @@ export const attack: Command = {
         ],
       });
     } else {
-      const currentCooldown: BazaarStats | undefined = db
-        .prepare(`SELECT * FROM BazaarStats WHERE id=?`)
-        .get(interaction.user.id) as BazaarStats | undefined;
+      const currentCooldown = await db.query(`SELECT * FROM BazaarStats WHERE id=$1`, [
+        interaction.user.id,
+      ]);
 
-      if (currentCooldown) {
-        db.prepare(`UPDATE BazaarStats SET battle_log=? WHERE id=?`).run(
+      if (currentCooldown.rows.length > 0) {
+        db.query(`UPDATE BazaarStats SET battle_log=$1 WHERE id=$2`, [
           JSON.stringify({
             global: helper.getUNIXStamp() + 3600,
-            personal: JSON.parse(currentCooldown.battle_log).personal,
+            personal: JSON.parse(currentCooldown.rows[0].battle_log).personal,
           }),
-          interaction.user.id
-        );
+          interaction.user.id,
+        ]);
       } else {
-        db.prepare(`INSERT INTO BazaarStats VALUES(?,?,?,?,?)`).run(
+        db.query(`INSERT INTO BazaarStats VALUES($1,$2,$3,$4,$5)`, [
           interaction.user.id,
           JSON.stringify({}),
           0,
@@ -327,22 +308,19 @@ export const attack: Command = {
           JSON.stringify({
             global: helper.getUNIXStamp() + 3600,
             personal: null,
-          })
-        );
+          }),
+        ]);
       }
 
       helper.updatePVPStats(targetUser, db, 1);
       helper.updatePVPStats(interaction.user, db, -1);
     }
 
-    const { energy } = db
-      .prepare(`SELECT * FROM BazaarStats WHERE id=?`)
-      .get(interaction.user.id) as BazaarStats;
+    const { energy } = (
+      await db.query(`SELECT * FROM BazaarStats WHERE id=$1`, [interaction.user.id])
+    ).rows[0];
 
     let newEnergy = energy - 1 >= 0 ? energy - 1 : 0;
-    db.prepare(`UPDATE BazaarStats SET energy=? WHERE id=?`).run(
-      newEnergy,
-      interaction.user.id
-    );
+    db.query(`UPDATE BazaarStats SET energy=$1 WHERE id=$2`, [newEnergy, interaction.user.id]);
   },
 };

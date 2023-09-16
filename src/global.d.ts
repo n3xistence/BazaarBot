@@ -1,5 +1,5 @@
-import Database from "better-sqlite3";
+import { Client } from "pg";
 
 declare global {
-  var DB: Database.Database;
+  var DB: Client;
 }

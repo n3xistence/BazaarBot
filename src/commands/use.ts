@@ -61,13 +61,13 @@ export const use: Command = {
         ephemeral: true,
       });
 
-    const currentTask = db.prepare(`SELECT * FROM Bazaar WHERE active='true'`).all();
-    if (currentTask.length < 1 && card.usage === "post")
+    const currentTask = await db.query(`SELECT * FROM Bazaar WHERE active='true'`);
+    if (currentTask.rows.length < 1 && card.usage === "post")
       return interaction.reply({
         content: `This card can only be used while a task is active.`,
         ephemeral: true,
       });
-    if (helper.userUsedPostCard(interaction.user, db) && card.usage === "post")
+    if ((await helper.userUsedPostCard(interaction.user, db)) && card.usage === "post")
       return interaction.reply({
         content: `You may only use one card per task.`,
         ephemeral: true,

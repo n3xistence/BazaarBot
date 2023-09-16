@@ -79,15 +79,13 @@ export const sell: Command = {
         break;
     }
 
-    let balance: Currency | undefined = db
-      .prepare(`SELECT * FROM currency WHERE id=?`)
-      .get(interaction.user.id) as Currency;
+    let balance = await db.query(`SELECT * FROM currency WHERE id=$1`, [interaction.user.id]);
 
-    if (!balance) {
-      db.prepare(`INSERT INTO currency VALUES (?,?,?,?)`).run(interaction.user.id, 0, gemYield, 0);
+    if (balance.rows.length === 0) {
+      db.query(`INSERT INTO currency VALUES ($1,$2,$3,$4)`, [interaction.user.id, 0, gemYield, 0]);
     } else {
-      let newBalance = balance.gems + gemYield;
-      db.prepare(`UPDATE currency SET gems=? WHERE id=?`).run(newBalance, interaction.user.id);
+      let newBalance = balance.rows[0].gems + gemYield;
+      db.query(`UPDATE currency SET gems=$1 WHERE id=$2`, [newBalance, interaction.user.id]);
     }
 
     inv.removeItem(card, sellAmount);

@@ -61,13 +61,10 @@ export const pay: Command = {
         ephemeral: true,
       });
 
-    let entry: any = db.prepare(`SELECT * FROM currency WHERE id=?`).get(targetUser.id);
-    if (entry) {
-      let newCurrency = currency.amount + entry[currency.type];
-      db.prepare(`UPDATE currency SET ${currency.type}=? WHERE id=?`).run(
-        newCurrency,
-        targetUser.id
-      );
+    let entry: any = await db.query(`SELECT * FROM currency WHERE id=$1`, [targetUser.id]);
+    if (entry.rows.length > 0) {
+      let newCurrency = currency.amount + entry.rows[0][currency.type];
+      db.query(`UPDATE currency SET ${currency.type}=$1 WHERE id=$2`, [newCurrency, targetUser.id]);
     } else {
       let pointObj: any = {
         points: 0,
@@ -77,12 +74,12 @@ export const pay: Command = {
       };
       pointObj[currency.type] = currency.amount;
 
-      db.prepare(`INSERT INTO currency VALUES(?,?,?,?)`).run(
+      db.query(`INSERT INTO currency VALUES($1,$2,$3,$4)`, [
         targetUser.id,
         pointObj.gold,
         pointObj.gems,
-        pointObj.scrap
-      );
+        pointObj.scrap,
+      ]);
     }
 
     return interaction.reply({

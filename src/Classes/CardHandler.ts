@@ -12,6 +12,7 @@ import {
 } from "discord.js";
 import * as helper from "../ext/Helper";
 import fs from "fs";
+import { Currency } from "../types/DBTypes";
 
 const applyGemBonus = (inv: Inventory, baseValue: number) => {
   let item = [...inv.getItems(), ...inv.getActiveItems()].find((e: any) => e.id === 40);
@@ -25,7 +26,7 @@ const applyGemBonus = (inv: Inventory, baseValue: number) => {
  * Mahols Hut
  * Gain +5 gems when using /bz daily
  */
-const handleCard23 = (card: Item, db: any, interaction: CommandInteraction) => {
+const handleCard23 = async (card: Item, db: any, interaction: CommandInteraction) => {
   const baseReward = 3;
 
   const inv = helper.getInventoryAsObject(interaction.user.id);
@@ -38,14 +39,18 @@ const handleCard23 = (card: Item, db: any, interaction: CommandInteraction) => {
 
   if ((card.cardType as Cooldown).cooldown?.current > 0) return { error: true };
 
-  let points = db.prepare(`SELECT * FROM currency WHERE id=?`).get(interaction.user.id);
+  const query = `SELECT * FROM currency WHERE id=$1`;
+  let points = await db.query(query, [interaction.user.id]);
 
-  if (points) {
+  if (points.rows.length > 0) {
     var reward = applyGemBonus(inv, baseReward);
-    var newBalance = points.gems + reward;
-    db.prepare(`UPDATE currency SET gems=? WHERE id=?`).run(newBalance, interaction.user.id);
+    var newBalance = points.rows[0].gems + reward;
+
+    const query = `UPDATE currency SET gems=$1 WHERE id=$2`;
+    db.query(query, [newBalance, interaction.user.id]);
   } else {
-    db.prepare(`INSERT INTO currency VALUES(?,?,?,?)`).run(interaction.user.id, 0, baseReward, 0);
+    const query = `INSERT INTO currency VALUES($1,$2,$3,$4)`;
+    db.query(query, [interaction.user.id, 0, baseReward, 0]);
   }
 
   card.resetCooldown();
@@ -162,7 +167,7 @@ const toggleCard28 = (card: Item, db: any, interaction: CommandInteraction) => {
  * Job
  * Gain +7 gems when using /bz daily
  */
-const handleCard29 = (card: Item, db: any, interaction: CommandInteraction) => {
+const handleCard29 = async (card: Item, db: any, interaction: CommandInteraction) => {
   const baseValue = 7;
 
   const inv = helper.getInventoryAsObject(interaction.user.id);
@@ -175,14 +180,18 @@ const handleCard29 = (card: Item, db: any, interaction: CommandInteraction) => {
     });
   card = foundCard;
 
-  let points = db.prepare(`SELECT * FROM currency WHERE id=?`).get(interaction.user.id);
+  const query = `SELECT * FROM currency WHERE id=$1`;
+  let points = await db.query(query, [interaction.user.id]);
 
-  if (points) {
+  if (points.rows.length > 0) {
     var reward = applyGemBonus(inv, baseValue);
-    var newBalance = points.gems + reward;
-    db.prepare(`UPDATE currency SET gems=? WHERE id=?`).run(newBalance, interaction.user.id);
+    var newBalance = points.rows[0].gems + reward;
+
+    const query = `UPDATE currency SET gems=$1 WHERE id=$2`;
+    db.query(query, [newBalance, interaction.user.id]);
   } else {
-    db.prepare(`INSERT INTO currency VALUES(?,?,?,?)`).run(interaction.user.id, 0, baseValue, 0);
+    const query = `INSERT INTO currency VALUES($1,$2,$3,$4)`;
+    db.query(query, [interaction.user.id, 0, baseValue, 0]);
   }
 
   card.resetCooldown();
@@ -271,7 +280,7 @@ const handleCard31 = (card: Item, db: any, interaction: CommandInteraction) => {
  * Dumping Grounds
  * Lose 3 scrap gain one Base Set pack (scrap needed to use)
  */
-const handleCard32 = (card: Item, db: any, interaction: CommandInteraction) => {
+const handleCard32 = async (card: Item, db: any, interaction: CommandInteraction) => {
   const scrapCost = 3;
 
   if ((card.cardType as Cooldown).cooldown?.current > 0)
@@ -292,14 +301,15 @@ const handleCard32 = (card: Item, db: any, interaction: CommandInteraction) => {
     });
   card = foundCard;
 
-  let balance = db.prepare(`SELECT scrap FROM currency WHERE id=?`).get(interaction.user.id);
-  if (!balance)
+  let query = `SELECT scrap FROM currency WHERE id=$1`;
+  let balance = await db.query(query, [interaction.user.id]);
+  if (balance.rows.length === 0)
     return interaction.reply({
       content: `You have no points.`,
       ephemeral: true,
     });
 
-  const { scrap } = balance;
+  const { scrap } = balance.rows[0];
   if (scrap < scrapCost)
     return interaction.reply({
       content: `You can not afford this item. You only have ${scrap} scrap.`,
@@ -307,17 +317,8 @@ const handleCard32 = (card: Item, db: any, interaction: CommandInteraction) => {
     });
 
   let newBalance = scrap - scrapCost;
-  db.prepare(`UPDATE currency SET scrap=? WHERE id=?`).run(newBalance, interaction.user.id);
-
-  if ((card.cardType as Cooldown).cooldown?.current > 0)
-    return interaction.reply({
-      content: `Could not use card \`${
-        card.name
-      }\` because it's currently on cooldown.\nIt is on cooldown for ${
-        (card.cardType as Cooldown).cooldown.current
-      } more ${(card.cardType as Cooldown).cooldown.current > 1 ? "turns" : "turn"}.`,
-      ephemeral: true,
-    });
+  query = `UPDATE currency SET scrap=$1 WHERE id=$2`;
+  db.query(query, [newBalance, interaction.user.id]);
 
   const droppool = JSON.parse(fs.readFileSync("./data/droppool.json", "utf-8"));
   let dropPoolIndex = droppool.findIndex((e: any) => e.code === "alpha");
@@ -508,9 +509,12 @@ const handleCard35 = (card: Item, db: any, interaction: CommandInteraction) => {
   card.resetCooldown();
   helper.updateInventoryRef(inv, interaction.user);
 
-  const currentEXP = db.prepare(`SELECT * FROM BazaarStats WHERE id=?`).get(interaction.user.id);
+  const query = `SELECT * FROM BazaarStats WHERE id=$1`;
+  let currentEXP = db.query(query, [interaction.user.id]);
 
-  if (currentEXP) {
+  if (currentEXP.rows.length > 0) {
+    currentEXP = currentEXP.rows[0];
+
     let newTotal = parseInt(currentEXP.exp) + reward;
 
     let formerLevel = helper.getLevelData(currentEXP.exp).level;
@@ -529,15 +533,17 @@ const handleCard35 = (card: Item, db: any, interaction: CommandInteraction) => {
       });
     }
 
-    db.prepare(`UPDATE BazaarStats SET exp=? WHERE id=?`).run(newTotal, interaction.user.id);
+    const query = `UPDATE BazaarStats SET exp=$1 WHERE id=$2`;
+    db.query(query, [newTotal, interaction.user.id]);
   } else {
-    db.prepare(`INSERT INTO BazaarStats VALUES(?,?,?,?,?)`).run(
+    const query = `INSERT INTO BazaarStats VALUES($1,$2,$3,$4,$5)`;
+    db.query(query, [
       interaction.user.id,
       JSON.stringify({}),
       reward,
       0,
-      JSON.stringify({ global: null, personal: null })
-    );
+      JSON.stringify({ global: null, personal: null }),
+    ]);
   }
 
   return { error: false, reward: reward, type: "exp" };
@@ -606,11 +612,12 @@ const handleCard38 = (card: Item, db: any, interaction: CommandInteraction) => {
  * Human Remains
  * Gain between 15 and 30 gems
  */
-const handleCard37 = (card: Item, db: any, interaction: CommandInteraction) => {
+const handleCard37 = async (card: Item, db: any, interaction: CommandInteraction) => {
   const min = 15;
   const max = 30;
 
-  let points = db.prepare(`SELECT * FROM currency WHERE id=?`).get(interaction.user.id);
+  const query = `SELECT * FROM currency WHERE id=$1`;
+  let points = await db.query(query, [interaction.user.id]);
 
   let inv = helper.getInventoryAsObject(interaction.user.id);
   const foundCard = inv.getItems().find((e) => e.id === card.id);
@@ -620,12 +627,14 @@ const handleCard37 = (card: Item, db: any, interaction: CommandInteraction) => {
     });
   card = foundCard;
 
-  if (points) {
-    let { gems } = points;
+  if (points.rows.length === 0) {
+    let { gems } = points.rows[0];
+
     let reward = applyGemBonus(inv, Math.round(Math.random() * (max - min)) + min);
     gems += reward;
 
-    db.prepare(`UPDATE currency SET gems=? WHERE id=?`).run(gems, interaction.user.id);
+    const query = `UPDATE currency SET gems=$1 WHERE id=$2`;
+    db.query(query, [gems, interaction.user.id]);
 
     interaction.reply({
       embeds: [
@@ -642,7 +651,8 @@ const handleCard37 = (card: Item, db: any, interaction: CommandInteraction) => {
     const reward = Math.round(Math.random() * 60) + 60;
     let gems = applyGemBonus(inv, reward);
 
-    db.prepare(`INSERT INTO currency VALUES(?,?,?,?)`).run(interaction.user.id, 0, gems, 0);
+    const query = `INSERT INTO currency VALUES($1,$2,$3,$4)`;
+    db.query(query, [interaction.user.id, 0, gems, 0]);
 
     interaction.reply({
       embeds: [
@@ -666,8 +676,8 @@ const handleCard37 = (card: Item, db: any, interaction: CommandInteraction) => {
  * Collection
  * Gain gems equal to 2*(unique cards owned)
  */
-const handleCard39 = (card: Item, db: any, interaction: CommandInteraction) => {
-  let points = db.prepare(`SELECT * FROM currency WHERE id=?`).get(interaction.user.id);
+const handleCard39 = async (card: Item, db: any, interaction: CommandInteraction) => {
+  let points = await db.query(`SELECT * FROM currency WHERE id=$1`, [interaction.user.id]);
 
   let inv = helper.getInventoryAsObject(interaction.user.id);
   const foundCard = inv.getItems().find((e) => e.id === card.id);
@@ -679,12 +689,13 @@ const handleCard39 = (card: Item, db: any, interaction: CommandInteraction) => {
 
   let uniqueItems = inv.getItems().length + inv.getActiveItems().length;
 
-  if (points) {
-    let { gems } = points;
+  if (points.rows.length > 0) {
+    let { gems } = points.rows[0];
     let reward = uniqueItems * 2;
     gems += applyGemBonus(inv, reward);
 
-    db.prepare(`UPDATE currency SET gems=? WHERE id=?`).run(gems, interaction.user.id);
+    const query = `UPDATE currency SET gems=$1 WHERE id=$2`;
+    db.query(query, [gems, interaction.user.id]);
 
     inv.removeItem(card);
     helper.updateInventoryRef(inv, interaction.user);
@@ -704,7 +715,8 @@ const handleCard39 = (card: Item, db: any, interaction: CommandInteraction) => {
   } else {
     let reward = applyGemBonus(inv, uniqueItems * 2);
 
-    db.prepare(`INSERT INTO currency VALUES(?,?,?,?)`).run(interaction.user.id, 0, reward, 0);
+    const query = `INSERT INTO currency VALUES($1,$2,$3,$4)`;
+    db.query(query, [interaction.user.id, 0, reward, 0]);
 
     inv.removeItem(card);
     helper.updateInventoryRef(inv, interaction.user);
@@ -760,7 +772,7 @@ const toggleCard40 = (card: Item, db: any, interaction: CommandInteraction) => {
  * Bank
  * Gain 5% interest on your Gems when using /bz daily (capped at 10/day)
  */
-const handleCard44 = (card: Item, db: any, interaction: CommandInteraction) => {
+const handleCard44 = async (card: Item, db: any, interaction: CommandInteraction) => {
   const cap = 10;
 
   if ((card.cardType as Cooldown).cooldown?.current > 0) return { error: true };
@@ -773,16 +785,18 @@ const handleCard44 = (card: Item, db: any, interaction: CommandInteraction) => {
     });
   card = foundCard;
 
-  let points = db.prepare(`SELECT * FROM currency WHERE id=?`).get(interaction.user.id);
+  let query = `SELECT * FROM currency WHERE id=$1`;
+  let points = await db.query(query, [interaction.user.id]);
 
-  if (!points || points.gems <= 0) return { error: true };
+  if (points.rows.length === 0 || points.rows[0].gems <= 0) return { error: true };
 
-  let gains = Math.round(applyGemBonus(inv, Math.round(points.gems * 0.05)));
+  let gains = Math.round(applyGemBonus(inv, Math.round(points.rows[0].gems * 0.05)));
   if (gains < 1) return { error: true };
   if (gains > cap) gains = cap;
-  let newBalance = points.gems + gains;
+  let newBalance = points.rows[0].gems + gains;
 
-  db.prepare(`UPDATE currency SET gems=? WHERE id=?`).run(newBalance, interaction.user.id);
+  query = `UPDATE currency SET gems=$1 WHERE id=$2`;
+  db.query(query, [newBalance, interaction.user.id]);
 
   card.resetCooldown();
   const invIndex = inv.getItems().findIndex((e) => e.id === card.id);

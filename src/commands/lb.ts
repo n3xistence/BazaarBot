@@ -120,7 +120,7 @@ export const lb: Command = {
     const db = Database.init();
     let type = interaction.options.getString("type");
 
-    const userList: Array<any> = db.prepare(`SELECT * FROM BazaarStats`).all() as Array<any>;
+    const userList = await db.query(`SELECT * FROM BazaarStats`);
 
     if (type)
       return interaction.reply({
@@ -131,14 +131,12 @@ export const lb: Command = {
     await interaction.deferReply();
 
     if (!type) {
-      for (const user of userList) {
+      for (const user of userList.rows) {
         const usr = await client.users.fetch(user.id).catch(() => {});
         if (!usr) continue;
 
         const inv = helper.getInventoryAsObject(user.id);
-        const pointData: Currency | undefined = db
-          .prepare(`SELECT * FROM currency WHERE id=?`)
-          .get(user.id) as Currency;
+        const pointData = await db.query(`SELECT * FROM currency WHERE id=$1`, [user.id]);
 
         const stats = JSON.parse(user.stats);
         const totalFights = stats.pvp_stats?.wins ?? 0 + stats.pvp_stats?.losses ?? 0;
@@ -146,8 +144,8 @@ export const lb: Command = {
 
         const statObj = {
           uniqueCards: [...inv.getItems(), ...inv.getActiveItems()].length,
-          gems: pointData?.gems ?? 0,
-          scrap: pointData?.scrap ?? 0,
+          gems: pointData.rows[0]?.gems ?? 0,
+          scrap: pointData.rows[0]?.scrap ?? 0,
           tasksWon: stats.tasks_won ?? 0,
           packsOpened: stats.packs_opened ?? 0,
           cardsLiquidated: stats.cards_liquidated ?? 0,
@@ -167,22 +165,26 @@ export const lb: Command = {
       }
 
       const lb = {
-        uniqueCards: [...userList]
+        uniqueCards: [...userList.rows]
           .sort((a, b) => b.stats.uniqueCards - a.stats.uniqueCards)
           .slice(0, 10),
-        packsOpened: [...userList]
+        packsOpened: [...userList.rows]
           .sort((a, b) => b.stats.packsOpened - a.stats.packsOpened)
           .slice(0, 10),
-        cardsLiquidated: [...userList]
+        cardsLiquidated: [...userList.rows]
           .sort((a, b) => b.stats.cardsLiquidated - a.stats.cardsLiquidated)
           .slice(0, 10),
-        allCards: [...userList].sort((a, b) => b.stats.allCards - a.stats.allCards).slice(0, 10),
+        allCards: [...userList.rows]
+          .sort((a, b) => b.stats.allCards - a.stats.allCards)
+          .slice(0, 10),
 
-        levels: [...userList].sort((a, b) => b.stats.levels - a.stats.levels).slice(0, 10),
-        winrate: [...userList].sort((a, b) => b.stats.winrate - a.stats.winrate).slice(0, 10),
-        gems: [...userList].sort((a, b) => b.stats.gems - a.stats.gems).slice(0, 10),
-        scrap: [...userList].sort((a, b) => b.stats.scrap - a.stats.scrap).slice(0, 10),
-        tasksWon: [...userList].sort((a, b) => b.stats.tasksWon - a.stats.tasksWon).slice(0, 10),
+        levels: [...userList.rows].sort((a, b) => b.stats.levels - a.stats.levels).slice(0, 10),
+        winrate: [...userList.rows].sort((a, b) => b.stats.winrate - a.stats.winrate).slice(0, 10),
+        gems: [...userList.rows].sort((a, b) => b.stats.gems - a.stats.gems).slice(0, 10),
+        scrap: [...userList.rows].sort((a, b) => b.stats.scrap - a.stats.scrap).slice(0, 10),
+        tasksWon: [...userList.rows]
+          .sort((a, b) => b.stats.tasksWon - a.stats.tasksWon)
+          .slice(0, 10),
       };
 
       let embeds = createEmbeds(lb);

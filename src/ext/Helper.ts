@@ -173,39 +173,39 @@ const updateInventoryRef = (inv: Inventory, user: any) => {
   fs.writeFileSync("./data/inventories.json", JSON.stringify(currentInventories, null, "\t"));
 };
 
-const updateTotalPacksOpened = (user: any, db: any, amount: number = 1) => {
+const updateTotalPacksOpened = async (user: any, db: any, amount: number = 1) => {
   const exp = 20;
 
-  const currentStats = db.prepare(`SELECT * FROM BazaarStats WHERE id=?`).get(user.id);
+  const currentStats = await db.query(`SELECT * FROM BazaarStats WHERE id=$1`, [user.id]);
 
-  if (currentStats) {
-    const stats = JSON.parse(currentStats.stats);
+  if (currentStats.rows.length > 0) {
+    const stats = JSON.parse(currentStats.rows[0].stats);
     let newTotal = parseInt(stats.packs_opened ?? 0) + amount;
     stats.packs_opened = newTotal;
 
-    db.prepare(`UPDATE BazaarStats SET stats=? WHERE id=?`).run(JSON.stringify(stats), user.id);
+    db.query(`UPDATE BazaarStats SET stats=$1 WHERE id=$2`, [JSON.stringify(stats), user.id]);
   } else {
-    db.prepare(`INSERT INTO BazaarStats VALUES(?,?,?,?,?)`).run(
+    db.query(`INSERT INTO BazaarStats VALUES($1,$2,$3,$4,$5)`, [
       user.id,
       JSON.stringify({ packs_opened: amount }),
       exp * amount,
       0,
-      JSON.stringify({ global: null, personal: null })
-    );
+      JSON.stringify({ global: null, personal: null }),
+    ]);
   }
 };
 
-const updateTotalEXP = (
+const updateTotalEXP = async (
   interaction: CommandInteraction,
   db: any,
   amount: number,
   value: number = 100
 ) => {
-  const currentEXP = db.prepare(`SELECT * FROM BazaarStats WHERE id=?`).get(interaction.user.id);
+  const currentEXP = await db.query(`SELECT * FROM BazaarStats WHERE id=$1`, [interaction.user.id]);
 
-  if (currentEXP) {
-    let formerLevel = getLevelData(currentEXP.exp).level;
-    let levelNow = getLevelData(currentEXP.exp + value).level;
+  if (currentEXP.rows.length > 0) {
+    let formerLevel = getLevelData(currentEXP.rows[0].exp).level;
+    let levelNow = getLevelData(currentEXP.rows[0].exp + value).level;
 
     if (levelNow > formerLevel) {
       addScrap(interaction.user, db, levelNow);
@@ -220,8 +220,8 @@ const updateTotalEXP = (
       });
     }
 
-    let newTotal = parseInt(currentEXP.exp) + amount * value;
-    db.prepare(`UPDATE BazaarStats SET exp=? WHERE id=?`).run(newTotal, interaction.user.id);
+    let newTotal = parseInt(currentEXP.rows[0].exp) + amount * value;
+    db.query(`UPDATE BazaarStats SET exp=$1 WHERE id=$2`, [newTotal, interaction.user.id]);
   } else {
     if (getLevelData(value).level >= 1)
       interaction.channel?.send({
@@ -237,24 +237,24 @@ const updateTotalEXP = (
         ],
       });
 
-    db.prepare(`INSERT INTO BazaarStats VALUES(?,?,?,?,?)`).run(
+    db.query(`INSERT INTO BazaarStats VALUES($1,$2,$3,$4,$5)`, [
       interaction.user.id,
       JSON.stringify({}),
       amount * value,
       0,
-      JSON.stringify({ global: null, personal: null })
-    );
+      JSON.stringify({ global: null, personal: null }),
+    ]);
   }
 };
 
-const addScrap = (user: any, db: any, amount: number) => {
-  const currentScrap = db.prepare(`SELECT * FROM currency WHERE id=?`).get(user.id);
+const addScrap = async (user: any, db: any, amount: number) => {
+  const currentScrap = await db.query(`SELECT * FROM currency WHERE id=$1`, [user.id]);
 
-  if (currentScrap) {
-    let newTotal = parseInt(currentScrap.scrap) + amount;
-    db.prepare(`UPDATE currency SET scrap=? WHERE id=?`).run(newTotal, user.id);
+  if (currentScrap.rows.length > 0) {
+    let newTotal = parseInt(currentScrap.rows[0].scrap) + amount;
+    db.query(`UPDATE currency SET scrap=$1 WHERE id=$2`, [newTotal, user.id]);
   } else {
-    db.prepare(`INSERT INTO currency VALUES(?,?,?,?)`).run(user.id, 0, 0, amount);
+    db.query(`INSERT INTO currency VALUES($1,$2,$3,$4)`, [user.id, 0, 0, amount]);
   }
 };
 
@@ -347,18 +347,18 @@ const bz_getDamage = (inv: Inventory, level: number) => {
   return Math.round(totalDamage + tenPercent * rng);
 };
 
-const userUsedPostCard = (user: any, db: any) => {
-  let currentTask = db.prepare(`SELECT * FROM Bazaar WHERE active='true'`).all();
-  if (currentTask.length < 1) return false;
-  else currentTask = currentTask[0];
+const userUsedPostCard = async (user: any, db: any) => {
+  let currentTask = await db.query(`SELECT * FROM Bazaar WHERE active='true'`);
+  if (currentTask.rows.length < 1) return false;
+  else currentTask = currentTask.rows[0];
 
   let userList = JSON.parse(currentTask.participants);
   return userList.find((e: any) => e.id === user.id) !== undefined;
 };
 
-const updatePostCardUsed = (card: Item, db: any, user: any) => {
-  let currentTask = db.prepare(`SELECT * FROM Bazaar WHERE active='true'`).all();
-  if (currentTask.length < 1) return;
+const updatePostCardUsed = async (card: Item, db: any, user: any) => {
+  let currentTask = await db.query(`SELECT * FROM Bazaar WHERE active='true'`);
+  if (currentTask.rows.length < 1) return;
   else currentTask = currentTask[0];
 
   let userList = JSON.parse(currentTask.participants);
@@ -370,17 +370,17 @@ const updatePostCardUsed = (card: Item, db: any, user: any) => {
   };
   userList.push(newUserObject);
 
-  db.prepare(`UPDATE Bazaar SET participants=? WHERE id=?`).run(
+  db.query(`UPDATE Bazaar SET participants=$1 WHERE id=$2`, [
     JSON.stringify(userList),
-    currentTask.id
-  );
+    currentTask.id,
+  ]);
 };
 
-const updatePVPStats = (user: any, db: any, result: number) => {
-  const currentStats = db.prepare(`SELECT * FROM BazaarStats WHERE id=?`).get(user.id);
+const updatePVPStats = async (user: any, db: any, result: number) => {
+  const currentStats = await db.query(`SELECT * FROM BazaarStats WHERE id=$1`, [user.id]);
 
-  if (currentStats) {
-    let stats = JSON.parse(currentStats.stats); // fill the obect with the default values in case user has not participated in pvp yet
+  if (currentStats.rows.length > 0) {
+    let stats = JSON.parse(currentStats.rows[0].stats); // fill the obect with the default values in case user has not participated in pvp yet
     if (stats === 0) stats = {};
     if (!stats.pvp_stats) stats.pvp_stats = { wins: 0, losses: 0 };
     if (!stats.pvp_stats.wins) stats.pvp_stats.wins = 0;
@@ -389,7 +389,7 @@ const updatePVPStats = (user: any, db: any, result: number) => {
     if (result > 0) stats.pvp_stats.wins = stats.pvp_stats.wins + result;
     else stats.pvp_stats.losses = stats.pvp_stats.losses + Math.abs(result);
 
-    db.prepare(`UPDATE BazaarStats SET stats=? WHERE id=?`).run(JSON.stringify(stats), user.id);
+    db.query(`UPDATE BazaarStats SET stats=$1 WHERE id=$2`, [JSON.stringify(stats), user.id]);
   } else {
     let stats = {
       pvp_stats: {
@@ -397,53 +397,54 @@ const updatePVPStats = (user: any, db: any, result: number) => {
         losses: result < 0 ? Math.abs(result) : 0,
       },
     };
-    db.prepare(`INSERT INTO BazaarStats VALUES(?,?,?,?,?)`).run(
+
+    db.query(`INSERT INTO BazaarStats VALUES($1,$2,$3,$4,$5)`, [
       user.id,
       JSON.stringify(stats),
       0,
       0,
-      JSON.stringify({ global: null, personal: null })
-    );
+      JSON.stringify({ global: null, personal: null }),
+    ]);
   }
 };
 
-const updateTasksWon = (user: any, db: any) => {
-  const currentStats = db.prepare(`SELECT * FROM BazaarStats WHERE id=?`).get(user.id);
+const updateTasksWon = async (user: any, db: any) => {
+  const currentStats = db.query(`SELECT * FROM BazaarStats WHERE id=$1`, [user.id]);
 
-  if (currentStats) {
-    const stats = JSON.parse(currentStats.stats);
+  if (currentStats.rows.length > 0) {
+    const stats = JSON.parse(currentStats.rows[0].stats);
     let newTotal = parseInt(stats.tasks_won ?? 0) + 1;
     stats.tasks_won = newTotal;
 
-    db.prepare(`UPDATE BazaarStats SET stats=? WHERE id=?`).run(JSON.stringify(stats), user.id);
+    db.query(`UPDATE BazaarStats SET stats=$1 WHERE id=$2`, [JSON.stringify(stats), user.id]);
   } else {
-    db.prepare(`INSERT INTO BazaarStats VALUES(?,?,?,?,?)`).run(
+    db.query(`INSERT INTO BazaarStats VALUES($1,$2,$3,$4,$5)`, [
       user.id,
       JSON.stringify({ tasks_won: 1 }),
       0,
       0,
-      JSON.stringify({ global: null, personal: null })
-    );
+      JSON.stringify({ global: null, personal: null }),
+    ]);
   }
 };
 
-const updateCardsLiquidated = (user: any, db: any, amount: number = 1) => {
-  const currentStats = db.prepare(`SELECT * FROM BazaarStats WHERE id=?`).get(user.id);
+const updateCardsLiquidated = async (user: any, db: any, amount: number = 1) => {
+  const currentStats = await db.query(`SELECT * FROM BazaarStats WHERE id=$1`, [user.id]);
 
-  if (currentStats) {
-    const stats = JSON.parse(currentStats.stats);
+  if (currentStats.rows.length > 0) {
+    const stats = JSON.parse(currentStats.rows[0].stats);
     let newTotal = parseInt(stats.cards_liquidated ?? 0) + amount;
     stats.cards_liquidated = newTotal;
 
-    db.prepare(`UPDATE BazaarStats SET stats=? WHERE id=?`).run(JSON.stringify(stats), user.id);
+    db.query(`UPDATE BazaarStats SET stats=$1 WHERE id=$2`, [JSON.stringify(stats), user.id]);
   } else {
-    db.prepare(`INSERT INTO BazaarStats VALUES(?,?,?,?,?)`).run(
+    db.query(`INSERT INTO BazaarStats VALUES($1,$2,$3,$4,$5)`, [
       user.id,
       JSON.stringify({ cards_liquidated: amount }),
       0,
       0,
-      JSON.stringify({ global: null, personal: null })
-    );
+      JSON.stringify({ global: null, personal: null }),
+    ]);
   }
 };
 
