@@ -7,11 +7,11 @@ export const init = () => {
   Logger.log("warn", "No Database Connection, establishing now...");
 
   const client = new Client({
-    user: process.env.USER,
-    host: process.env.HOST,
-    database: process.env.DATABASE,
-    password: process.env.PASSWORD,
-    port: parseInt(process.env.PORT as string),
+    user: process.env.PG_USER,
+    host: process.env.PG_HOST,
+    database: process.env.PG_DATABASE,
+    password: process.env.PG_PASSWORD,
+    port: parseInt(process.env.PG_PORT as string),
   });
 
   client
