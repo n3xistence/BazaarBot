@@ -262,7 +262,6 @@ const addScrap = async (user: any, db: any, amount: number) => {
 };
 
 const getLevelData = (exp: number) => {
-  console.log(exp);
   let level = 0;
   while (exp >= (level + 1) * 50) {
     exp -= (level + 1) * 50;
