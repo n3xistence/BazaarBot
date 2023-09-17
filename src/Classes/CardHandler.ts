@@ -495,7 +495,7 @@ const handleCard34 = (card: Item, db: any, interaction: CommandInteraction) => {
  * NPC
  * Gain +50 exp when using /bz daily
  */
-const handleCard35 = (card: Item, db: any, interaction: CommandInteraction) => {
+const handleCard35 = async (card: Item, db: any, interaction: CommandInteraction) => {
   const reward = 50;
   const inv = helper.getInventoryAsObject(interaction.user.id);
   const foundCard = inv.getItems().find((e) => e.id === card.id);
@@ -512,7 +512,7 @@ const handleCard35 = (card: Item, db: any, interaction: CommandInteraction) => {
   helper.updateInventoryRef(inv, interaction.user);
 
   const query = `SELECT * FROM BazaarStats WHERE id=$1`;
-  let currentEXP = db.query(query, [interaction.user.id]);
+  let currentEXP = await db.query(query, [interaction.user.id]);
 
   if (currentEXP.rows.length > 0) {
     currentEXP = currentEXP.rows[0];
