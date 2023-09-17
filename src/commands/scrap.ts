@@ -65,20 +65,18 @@ export const scrap: Command = {
         break;
     }
 
-    let balance: Currency | undefined = db
-      .prepare(`SELECT * FROM currency WHERE id=?`)
-      .get(interaction.user.id) as Currency;
+    let balance = await db.query(`SELECT * FROM currency WHERE id=$1`, [interaction.user.id]);
 
-    if (!balance) {
-      db.prepare(`INSERT INTO currency VALUES (?,?,?,?)`).run(
+    if (balance.rows.length === 0) {
+      db.query(`INSERT INTO currency VALUES ($1,$2,$3,$4)`, [
         interaction.user.id,
         0,
         0,
-        scrapYield
-      );
+        scrapYield,
+      ]);
     } else {
-      let newBalance = balance.scrap + scrapYield;
-      db.prepare(`UPDATE currency SET scrap=? WHERE id=?`).run(newBalance, interaction.user.id);
+      let newBalance = balance.rows[0].scrap + scrapYield;
+      db.query(`UPDATE currency SET scrap=$1 WHERE id=$2`, [newBalance, interaction.user.id]);
     }
 
     inv.removeItem(card, scrapAmount);

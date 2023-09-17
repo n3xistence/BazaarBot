@@ -34,9 +34,8 @@ export const decrypptask: any = {
     interaction.deleteReply();
     if (!res) return;
 
-    const task: { [k: string]: any } = db
-      .prepare(`SELECT * FROM Bazaar WHERE active='true'`)
-      .get() as Bazaar;
+    const task: { [k: string]: any } = (await db.query(`SELECT * FROM Bazaar WHERE active='true'`))
+      .rows[0];
 
     task.emote = task.type === "gems" ? helper.emoteGems : helper.emoteGold;
 

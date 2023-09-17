@@ -98,11 +98,11 @@ export const task: Command = {
       });
 
     const db = Database.init();
-    const currentTasks = db.prepare(`SELECT * FROM Bazaar`).all();
+    const currentTasks = await db.query(`SELECT * FROM Bazaar`);
 
-    let activeTasks = db.prepare(`SELECT * FROM Bazaar WHERE active='true'`).all();
+    let activeTasks = await db.query(`SELECT * FROM Bazaar WHERE active='true'`);
 
-    if (activeTasks.length > 0)
+    if (activeTasks.rows.length > 0)
       return interaction.reply({
         content: `There is already an active task.`,
         ephemeral: true,
@@ -110,7 +110,7 @@ export const task: Command = {
 
     const task = {
       active: true,
-      id: currentTasks.length + 1,
+      id: currentTasks.rows.length + 1,
       type: interaction.options.getString("rewardtype")?.toLowerCase(),
       amount: interaction.options.getNumber("amount"),
       timestamp: helper.getUNIXStamp(),
@@ -168,7 +168,7 @@ export const task: Command = {
       components: [row],
     });
 
-    db.prepare(`INSERT INTO Bazaar VALUES(?,?,?,?,?,?,?,?,?,?,?,?)`).run(
+    db.query(`INSERT INTO Bazaar VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12)`, [
       task.id,
       `${task.active}`,
       task.timestamp,
@@ -180,8 +180,8 @@ export const task: Command = {
       task.activeCards,
       task.description,
       msg.id,
-      task.notes
-    );
+      task.notes,
+    ]);
 
     return await interaction.reply({
       content: `Successfully started task ${task.id}.`,

@@ -39,13 +39,20 @@ const getApplicableEffects = (inv: Array<any>, options: any, hasRunestoneCard: b
     for (const effect of item.effects) {
       if (type !== effect.category) continue;
 
-      if (item.owner.id === userId && hasRunestoneCard && item.cardType === "passive") {
-        if (effect.type === "additive") modifier.additive += parseFloat(effect.modifier) * 0.5;
-        else modifier.multiplicative += parseFloat(effect.modifier) * 0.5;
-      } else {
-        if (effect.type === "additive") modifier.additive += parseFloat(effect.modifier);
-        else modifier.multiplicative += parseFloat(effect.modifier);
-      }
+      if (effect.type === "additive")
+        modifier.additive +=
+          parseFloat(effect.modifier) * item.owner.id === userId &&
+          hasRunestoneCard &&
+          item.cardType === "passive"
+            ? 0.5
+            : 1;
+      else
+        modifier.multiplicative +=
+          parseFloat(effect.modifier) * item.owner.id === userId &&
+          hasRunestoneCard &&
+          item.cardType === "passive"
+            ? 0.5
+            : 1;
     }
   }
 
@@ -53,9 +60,10 @@ const getApplicableEffects = (inv: Array<any>, options: any, hasRunestoneCard: b
 };
 
 const handleTaskEnd = async (db: any, interaction: any, client: Client) => {
-  const activeTask = db.prepare(`SELECT * FROM Bazaar WHERE active='true'`).get();
+  let query = `SELECT * FROM Bazaar WHERE active='true'`;
+  const activeTask = await db.query(query);
 
-  if (!activeTask) {
+  if (activeTask.rows.length === 0) {
     interaction.editReply({
       content: `There is no active task.`,
       embeds: [],
@@ -65,11 +73,11 @@ const handleTaskEnd = async (db: any, interaction: any, client: Client) => {
     return false;
   }
 
-  let winnerIDs = JSON.parse(activeTask.chosen_winners).map((e: any) => e.id);
-  if (activeTask.winners !== winnerIDs.length) {
+  let winnerIDs = JSON.parse(activeTask.rows[0].chosen_winners).map((e: any) => e.id);
+  if (activeTask.rows[0].winners !== winnerIDs.length) {
     const notice = `You provided ${winnerIDs.length} winner${
       winnerIDs.length !== 1 ? "s" : ""
-    } for a task with ${activeTask.winners} winner${
+    } for a task with ${activeTask.rows[0].winners} winner${
       winnerIDs.length !== 1 ? "s" : ""
     }.\nAre you sure you would like to end the task regardless?`;
 
@@ -79,13 +87,17 @@ const handleTaskEnd = async (db: any, interaction: any, client: Client) => {
     });
 
     if (res) {
-      db.prepare(`DELETE FROM Bazaar WHERE id=?`).run(activeTask.id);
-      const message = await interaction.channel.messages
-        .fetch(interaction.message.id)
-        .catch(console.log);
-      if (message) message.delete();
+      if (activeTask.rows[0].chosen_winners === 0) {
+        const query = `DELETE FROM Bazaar WHERE id=$1`;
+        db.query(query, [activeTask.rows[0].id]);
 
-      return { void: true };
+        const message = await interaction.channel.messages
+          .fetch(interaction.message.id)
+          .catch(console.log);
+        if (message) message.delete();
+
+        return { void: true };
+      }
     } else {
       interaction.editReply({
         content: "The task will remain active.",
@@ -104,7 +116,7 @@ const handleTaskEnd = async (db: any, interaction: any, client: Client) => {
 
   let inventories = JSON.parse(fs.readFileSync("./data/inventories.json", "utf-8"));
 
-  let activeItems = getAllActiveItems(inventories, activeTask.type);
+  let activeItems = getAllActiveItems(inventories, activeTask.rows[0].type);
 
   let winnerNotices: Array<string> = [];
   for (let winner of winners) {
@@ -115,7 +127,7 @@ const handleTaskEnd = async (db: any, interaction: any, client: Client) => {
       activeItems,
       {
         userId: winner.id,
-        type: activeTask.type,
+        type: activeTask.rows[0].type,
       },
       hasRunestoneCard
     );
@@ -124,40 +136,39 @@ const handleTaskEnd = async (db: any, interaction: any, client: Client) => {
     const hasCloverCard = [inv.getActiveItems()].find((e: any) => e.id === 49) !== undefined;
     const hasGameCenterCard = inv.getActiveItems().find((e: any) => e.id === 28) !== undefined;
 
-    let baseValue = parseInt(`${activeTask.amount}`.replace(/\./g, ""));
-    let balance = db.prepare(`SELECT ${activeTask.type} FROM currency WHERE id=?`).get(winner.id);
+    let baseValue = parseInt(`${activeTask.rows[0].amount}`.replace(/\./g, ""));
+    query = `SELECT ${activeTask.rows[0].type} FROM currency WHERE id=$1`;
+    let balance = await db.query(query, [winner.id]);
 
-    if (!balance) {
+    if (balance.rows.length === 0) {
       let pointObj: { [x: string]: any } = {
         points: 0,
         gold: 0,
         gems: 0,
         scrap: 0,
       };
-      pointObj[activeTask.type] = baseValue * modifier.multiplicative + modifier.additive;
+      pointObj[activeTask.rows[0].type] = baseValue * modifier.multiplicative + modifier.additive;
 
       let cloverRoll = Math.random();
-      if (cloverRoll <= 0.1 && hasCloverCard) pointObj[activeTask.type] *= 2;
+      if (cloverRoll <= 0.1 && hasCloverCard) pointObj[activeTask.rows[0].type] *= 2;
       if (hasGameCenterCard) {
         let gameRoll = Math.random();
-        if (gameRoll <= 0.5) pointObj[activeTask.type] *= 2;
-        else pointObj[activeTask.type] = baseValue * -1;
+        if (gameRoll <= 0.5) pointObj[activeTask.rows[0].type] *= 2;
+        else pointObj[activeTask.rows[0].type] = baseValue * -1;
       }
 
-      pointObj[activeTask.type] = Math.round(pointObj[activeTask.type]);
+      pointObj[activeTask.rows[0].type] = Math.round(pointObj[activeTask.rows[0].type]);
 
-      db.prepare(`INSERT INTO currency VALUES(?,?,?,?)`).run(
-        winner.id,
-        pointObj.gold,
-        pointObj.gems,
-        pointObj.scrap
-      );
+      const query = `INSERT INTO currency VALUES($1,$2,$3,$4)`;
+      db.query(query, [winner.id, pointObj.gold, pointObj.gems, pointObj.scrap]);
 
-      let notice = `${winner} ${helper.separator} ${pointObj[activeTask.type].toLocaleString()} ${
-        activeTask.type
-      }`;
+      let notice = `${winner} ${helper.separator} ${pointObj[
+        activeTask.rows[0].type
+      ].toLocaleString()} ${activeTask.rows[0].type}`;
       winnerNotices.push(notice);
     } else {
+      balance = balance.rows[0];
+
       let reward = Math.round(baseValue * modifier.multiplicative + modifier.additive);
       let roll = Math.random();
       if (roll <= 0.1 && hasCloverCard) reward *= 2;
@@ -168,12 +179,15 @@ const handleTaskEnd = async (db: any, interaction: any, client: Client) => {
         else reward = baseValue * -1;
       }
 
-      balance[activeTask.type] = Math.round(balance[activeTask.type]);
+      balance[activeTask.rows[0].type] = Math.round(balance[activeTask.rows[0].type]);
 
-      let newBalance = balance[activeTask.type] + reward;
-      db.prepare(`UPDATE currency SET ${activeTask.type}=? WHERE id=?`).run(newBalance, winner.id);
+      let newBalance = balance[activeTask.rows[0].type] + reward;
+      query = `UPDATE currency SET ${activeTask.rows[0].type}=$1 WHERE id=$2`;
+      db.query(query, [newBalance, winner.id]);
 
-      let notice = `${winner} ${helper.separator} ${reward.toLocaleString()} ${activeTask.type}`;
+      let notice = `${winner} ${helper.separator} ${reward.toLocaleString()} ${
+        activeTask.rows[0].type
+      }`;
       winnerNotices.push(notice);
     }
 
@@ -183,11 +197,11 @@ const handleTaskEnd = async (db: any, interaction: any, client: Client) => {
   interaction.channel.send({
     embeds: [
       new EmbedBuilder()
-        .setTitle(`${helper.emoteBazaar} ${helper.separator} Task #${activeTask.id} Ended`)
+        .setTitle(`${helper.emoteBazaar} ${helper.separator} Task Ended`)
         .setColor("DarkPurple")
         .setDescription(
-          `Reward: \`${activeTask.amount.toLocaleString()} ${
-            activeTask.type
+          `Reward: \`${activeTask.rows[0].amount.toLocaleString()} ${
+            activeTask.rows[0].type
           }\`\n\nWinners:\n >>> ${winnerNotices.join("\n")}`
         ),
     ],
@@ -195,7 +209,8 @@ const handleTaskEnd = async (db: any, interaction: any, client: Client) => {
 
   fs.writeFileSync("./data/inventories.json", JSON.stringify(inventories, null, "\t"));
 
-  db.prepare(`UPDATE Bazaar SET active='false' WHERE id=${activeTask.id}`).run();
+  query = `UPDATE Bazaar SET active='false' WHERE id=$1`;
+  db.query(query, [activeTask.rows[0].id]);
 
   return true;
 };

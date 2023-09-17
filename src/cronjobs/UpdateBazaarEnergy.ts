@@ -3,28 +3,26 @@ import * as Database from "../Database";
 import { BazaarStats } from "../types/DBTypes";
 import Logger from "../ext/Logger";
 
-export const UpdateBazaarEnergy = () => {
+export const UpdateBazaarEnergy = async () => {
   const userdata = JSON.parse(fs.readFileSync("./data/inventories.json", "utf-8"));
 
   const db = Database.init();
   for (const user of userdata) {
-    let entry: BazaarStats = db
-      .prepare(`SELECT * FROM BazaarStats WHERE id=?`)
-      .get(user.userId) as BazaarStats;
-    if (entry) {
-      if (entry.energy === 5) continue;
+    let entry = await db.query(`SELECT * FROM BazaarStats WHERE id=$1`, [user.userId]);
+    if (entry.rows.length > 0) {
+      if (entry.rows[0].energy === 5) continue;
 
-      const newEnergy = entry.energy + 1;
-      db.prepare(`UPDATE BazaarStats SET energy=? WHERE id=?`).run(newEnergy, user.userId);
+      const newEnergy = entry.rows[0].energy + 1;
+      db.query(`UPDATE BazaarStats SET energy=$1 WHERE id=$2`, [newEnergy, user.userId]);
     } else {
       const battleLog = { global: null, personal: null };
-      db.prepare(`INSERT INTO BazaarStats VALUES(?,?,?,?,?)`).run(
+      db.query(`INSERT INTO BazaarStats VALUES($1,$2,$3,$4,$5)`, [
         user.userId,
         JSON.stringify({}),
         0,
         5,
-        JSON.stringify(battleLog)
-      );
+        JSON.stringify(battleLog),
+      ]);
     }
   }
 

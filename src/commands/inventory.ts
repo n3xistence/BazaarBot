@@ -77,13 +77,13 @@ export const inventory: Command = {
     };
 
     const db = Database.init();
-    const data: Currency = db
-      .prepare(`SELECT gold, gems, scrap FROM currency WHERE id=?`)
-      .get(interaction.user.id) as Currency;
 
+    const dataQuery = `SELECT gold, gems, scrap FROM currency WHERE id=$1`;
+    const data: Currency = (await db.query(dataQuery, [interaction.user.id])).rows[0];
+
+    const statsQuery = `SELECT * FROM BazaarStats WHERE id=$1`;
     const stats: number =
-      (db.prepare(`SELECT * FROM BazaarStats WHERE id=?`).get(interaction.user.id) as BazaarStats)
-        ?.energy ?? 0;
+      ((await db.query(statsQuery, [interaction.user.id])).rows[0] as BazaarStats)?.energy ?? 0;
 
     if (data) {
       balance.gems = data.gems.toLocaleString();

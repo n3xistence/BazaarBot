@@ -54,18 +54,17 @@ export const spy: Command = {
       scrap: "0",
     };
 
-    const data: Currency | undefined = db
-      .prepare(`SELECT gold, gems, scrap FROM currency WHERE id=?`)
-      .get(targetUser.id) as Currency;
+    const data = await db.query(`SELECT gold, gems, scrap FROM currency WHERE id=$1`, [
+      targetUser.id,
+    ]);
 
-    const stats: number =
-      (db.prepare(`SELECT * FROM BazaarStats WHERE id=?`).get(targetUser.id) as BazaarStats)
-        ?.energy ?? 0;
+    let stats: unknown = await db.query(`SELECT * FROM BazaarStats WHERE id=$1`, [targetUser.id]);
+    if (!stats) stats = { energy: 0 };
 
     if (data) {
-      balance.gems = data.gems.toLocaleString();
-      balance.gold = data.gold.toLocaleString();
-      balance.scrap = data.scrap.toLocaleString();
+      balance.gems = data.rows[0].gems.toLocaleString();
+      balance.gold = data.rows[0].gold.toLocaleString();
+      balance.scrap = data.rows[0].scrap.toLocaleString();
     }
 
     let invStats = `- Gold: ${balance.gold} <:bgold:1109527028434219088>\n- Gems: ${

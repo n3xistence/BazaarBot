@@ -32,6 +32,11 @@ export const send: Command = {
     let cardCode = interaction.options.getString("code");
     let targetUser = interaction.options.getUser("user");
     let amount = interaction.options.getNumber("amount") ?? 1;
+    if (amount <= 0)
+      return interaction.reply({
+        content: "Please provide a valid amount.",
+        ephemeral: true,
+      });
 
     if (!targetUser)
       return interaction.reply({
