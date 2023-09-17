@@ -33,7 +33,9 @@ export const sell: Command = {
 
     let inv: Inventory = helper.getInventoryAsObject(interaction.user.id);
 
-    let hasMarket = [...inv.getActiveItems(), ...inv.getItems()].find((e) => e.id === 22);
+    let hasMarket = [...inv.getActiveItems(), ...inv.getItems()].find(
+      (e) => e.id === 22
+    );
     if (!hasMarket)
       return interaction.reply({
         content: `You must own the card \`Diamond Market\` to sell cards.`,
@@ -69,23 +71,33 @@ export const sell: Command = {
         gemYield = 2 * sellAmount;
         break;
       case "epic":
-        gemYield = 7 * sellAmount;
+        gemYield = 4 * sellAmount;
         break;
       case "legendary":
-        gemYield = 40 * sellAmount;
+        gemYield = 27 * sellAmount;
         break;
       case "celestial":
-        gemYield = 200 * sellAmount;
+        gemYield = 100 * sellAmount;
         break;
     }
 
-    let balance = await db.query(`SELECT * FROM currency WHERE id=$1`, [interaction.user.id]);
+    let balance = await db.query(`SELECT * FROM currency WHERE id=$1`, [
+      interaction.user.id,
+    ]);
 
     if (balance.rows.length === 0) {
-      db.query(`INSERT INTO currency VALUES ($1,$2,$3,$4)`, [interaction.user.id, 0, gemYield, 0]);
+      db.query(`INSERT INTO currency VALUES ($1,$2,$3,$4)`, [
+        interaction.user.id,
+        0,
+        gemYield,
+        0,
+      ]);
     } else {
       let newBalance = balance.rows[0].gems + gemYield;
-      db.query(`UPDATE currency SET gems=$1 WHERE id=$2`, [newBalance, interaction.user.id]);
+      db.query(`UPDATE currency SET gems=$1 WHERE id=$2`, [
+        newBalance,
+        interaction.user.id,
+      ]);
     }
 
     inv.removeItem(card, sellAmount);
