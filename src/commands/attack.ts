@@ -198,7 +198,7 @@ export const attack: Command = {
       const query = `SELECT * FROM BazaarStats WHERE id=$1`;
       const energy = await db.query(query, [interaction.user.id]);
 
-      if (energy.rows.length > 0) {
+      if (energy.rows.length === 0) {
         const query = `INSERT INTO BazaarStats VALUES($1,$2,$3,$4,$5)`;
         db.query(query, [
           interaction.user.id,
