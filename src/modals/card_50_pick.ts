@@ -22,7 +22,6 @@ export const card_50_pick: ModalInteraction = {
     let card: any = [...inv.getActiveItems(), ...inv.getItems()].find((e) => e.code === cardCode);
     if (!card) {
       for (const pack of droppool) {
-        console.log(pack);
         const item = pack.items.find((e: Pack) => e.code === cardCode);
         if (!item) continue;
 
