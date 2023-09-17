@@ -40,7 +40,7 @@ export const decrypptask: any = {
     task.emote = task.type === "gems" ? helper.emoteGems : helper.emoteGold;
 
     let embed = new EmbedBuilder()
-      .setTitle(`${helper.emoteBazaar} ${helper.separator} Bazaar Task #${task.id}`)
+      .setTitle(`${helper.emoteBazaar} ${helper.separator} Bazaar Task`)
       .setColor("DarkPurple")
       .setDescription(
         `Winners: ${task.winners}\nStarted: <t:${parseInt(task.timestamp)}:R>\nRewards: ${

@@ -70,8 +70,6 @@ export const give: Command = {
         ephemeral: true,
       });
 
-    await interaction.deferReply();
-
     let inv = helper.getInventoryAsObject(targetUser.id);
 
     const card = findInDroppool(droppool, cardCode ?? "");
@@ -80,6 +78,8 @@ export const give: Command = {
         content: `There is no Card with the code \`${cardCode}\`.`,
         ephemeral: true,
       });
+
+    await interaction.deferReply();
 
     card.amount = amount;
     if (amount > 0) inv.addItem(card);
