@@ -39,7 +39,7 @@ messageCreate(client);
 /**
  * Cron Jobs
  */
-cron.schedule("*/5 * * * *", Jobs.UpdateBazaarEnergy, {
+cron.schedule("*/30 * * * *", Jobs.UpdateBazaarEnergy, {
   timezone: "Europe/London",
 });
 

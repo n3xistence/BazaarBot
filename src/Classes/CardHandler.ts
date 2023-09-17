@@ -255,15 +255,17 @@ const handleCard30 = async (
   inv.setActiveItem(card);
   helper.updateInventoryRef(inv, interaction.user);
 
-  return newInteraction.reply({
-    embeds: [
-      new EmbedBuilder()
-        .setColor("Green")
-        .setDescription(
-          `${helper.emoteApprove} ${helper.separator} ${interaction.user} just used card \`${card.name}\` and targeted ${user}.`
-        ),
-    ],
-  });
+  return newInteraction
+    .reply({
+      embeds: [
+        new EmbedBuilder()
+          .setColor("Green")
+          .setDescription(
+            `${helper.emoteApprove} ${helper.separator} ${interaction.user} just used card \`${card.name}\` and targeted ${user}.`
+          ),
+      ],
+    })
+    .catch(() => {});
 };
 
 /**

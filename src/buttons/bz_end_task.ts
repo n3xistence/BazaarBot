@@ -39,13 +39,20 @@ const getApplicableEffects = (inv: Array<any>, options: any, hasRunestoneCard: b
     for (const effect of item.effects) {
       if (type !== effect.category) continue;
 
-      if (item.owner.id === userId && hasRunestoneCard && item.cardType === "passive") {
-        if (effect.type === "additive") modifier.additive += parseFloat(effect.modifier) * 0.5;
-        else modifier.multiplicative += parseFloat(effect.modifier) * 0.5;
-      } else {
-        if (effect.type === "additive") modifier.additive += parseFloat(effect.modifier);
-        else modifier.multiplicative += parseFloat(effect.modifier);
-      }
+      if (effect.type === "additive")
+        modifier.additive +=
+          parseFloat(effect.modifier) * item.owner.id === userId &&
+          hasRunestoneCard &&
+          item.cardType === "passive"
+            ? 0.5
+            : 1;
+      else
+        modifier.multiplicative +=
+          parseFloat(effect.modifier) * item.owner.id === userId &&
+          hasRunestoneCard &&
+          item.cardType === "passive"
+            ? 0.5
+            : 1;
     }
   }
 
@@ -80,15 +87,17 @@ const handleTaskEnd = async (db: any, interaction: any, client: Client) => {
     });
 
     if (res) {
-      const query = `DELETE FROM Bazaar WHERE id=$1`;
-      db.query(query, [activeTask.rows[0].id]);
+      if (activeTask.rows[0].chosen_winners === 0) {
+        const query = `DELETE FROM Bazaar WHERE id=$1`;
+        db.query(query, [activeTask.rows[0].id]);
 
-      const message = await interaction.channel.messages
-        .fetch(interaction.message.id)
-        .catch(console.log);
-      if (message) message.delete();
+        const message = await interaction.channel.messages
+          .fetch(interaction.message.id)
+          .catch(console.log);
+        if (message) message.delete();
 
-      return { void: true };
+        return { void: true };
+      }
     } else {
       interaction.editReply({
         content: "The task will remain active.",
@@ -150,7 +159,7 @@ const handleTaskEnd = async (db: any, interaction: any, client: Client) => {
 
       pointObj[activeTask.rows[0].type] = Math.round(pointObj[activeTask.rows[0].type]);
 
-      const query = `INSERT INTO currency VALUES($1, $2, $3, $4)`;
+      const query = `INSERT INTO currency VALUES($1,$2,$3,$4)`;
       db.query(query, [winner.id, pointObj.gold, pointObj.gems, pointObj.scrap]);
 
       let notice = `${winner} ${helper.separator} ${pointObj[
@@ -158,6 +167,8 @@ const handleTaskEnd = async (db: any, interaction: any, client: Client) => {
       ].toLocaleString()} ${activeTask.rows[0].type}`;
       winnerNotices.push(notice);
     } else {
+      balance = balance.rows[0];
+
       let reward = Math.round(baseValue * modifier.multiplicative + modifier.additive);
       let roll = Math.random();
       if (roll <= 0.1 && hasCloverCard) reward *= 2;
@@ -186,7 +197,7 @@ const handleTaskEnd = async (db: any, interaction: any, client: Client) => {
   interaction.channel.send({
     embeds: [
       new EmbedBuilder()
-        .setTitle(`${helper.emoteBazaar} ${helper.separator} Task #${activeTask.rows[0].id} Ended`)
+        .setTitle(`${helper.emoteBazaar} ${helper.separator} Task Ended`)
         .setColor("DarkPurple")
         .setDescription(
           `Reward: \`${activeTask.rows[0].amount.toLocaleString()} ${
