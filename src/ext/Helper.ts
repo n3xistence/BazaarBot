@@ -82,6 +82,9 @@ const handleCustomCardUsage = (
     case 29:
       returnValue = ch.handleCard29(card, db, interaction);
       break;
+    case 30:
+      returnValue = ch.handleCard30(card, db, interaction, client);
+      break;
     case 31:
       returnValue = ch.handleCard31(card, db, interaction);
       break;
@@ -359,7 +362,7 @@ const userUsedPostCard = async (user: any, db: any) => {
 const updatePostCardUsed = async (card: Item, db: any, user: any) => {
   let currentTask = await db.query(`SELECT * FROM Bazaar WHERE active='true'`);
   if (currentTask.rows.length < 1) return;
-  else currentTask = currentTask[0];
+  else currentTask = currentTask.rows[0];
 
   let userList = JSON.parse(currentTask.participants);
   if (userList.find((e: any) => e.id === user.id)) return;
@@ -409,7 +412,7 @@ const updatePVPStats = async (user: any, db: any, result: number) => {
 };
 
 const updateTasksWon = async (user: any, db: any) => {
-  const currentStats = db.query(`SELECT * FROM BazaarStats WHERE id=$1`, [user.id]);
+  const currentStats = await db.query(`SELECT * FROM BazaarStats WHERE id=$1`, [user.id]);
 
   if (currentStats.rows.length > 0) {
     const stats = JSON.parse(currentStats.rows[0].stats);

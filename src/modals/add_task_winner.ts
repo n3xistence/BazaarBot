@@ -69,7 +69,7 @@ export const add_task_winner: ModalInteraction = {
         : "th";
 
     const msg = await interaction.channel.messages
-      .fetch(currentTask.rows[0].messageID)
+      .fetch(currentTask.rows[0].messageid)
       .catch(console.log);
     if (!msg)
       return interaction.reply({
@@ -89,6 +89,7 @@ export const add_task_winner: ModalInteraction = {
           currentTask.rows[0].notes
         }`
       );
+
     msg.edit({ embeds: [newTaskEmbed] });
 
     return interaction.reply({
