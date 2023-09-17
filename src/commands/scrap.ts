@@ -55,17 +55,19 @@ export const scrap: Command = {
         scrapYield = 3 * scrapAmount;
         break;
       case "epic":
-        scrapYield = 10 * scrapAmount;
+        scrapYield = 6 * scrapAmount;
         break;
       case "legendary":
-        scrapYield = 60 * scrapAmount;
+        scrapYield = 40 * scrapAmount;
         break;
       case "celestial":
-        scrapYield = 300 * scrapAmount;
+        scrapYield = 150 * scrapAmount;
         break;
     }
 
-    let balance = await db.query(`SELECT * FROM currency WHERE id=$1`, [interaction.user.id]);
+    let balance = await db.query(`SELECT * FROM currency WHERE id=$1`, [
+      interaction.user.id,
+    ]);
 
     if (balance.rows.length === 0) {
       db.query(`INSERT INTO currency VALUES ($1,$2,$3,$4)`, [
@@ -76,7 +78,10 @@ export const scrap: Command = {
       ]);
     } else {
       let newBalance = balance.rows[0].scrap + scrapYield;
-      db.query(`UPDATE currency SET scrap=$1 WHERE id=$2`, [newBalance, interaction.user.id]);
+      db.query(`UPDATE currency SET scrap=$1 WHERE id=$2`, [
+        newBalance,
+        interaction.user.id,
+      ]);
     }
 
     inv.removeItem(card, scrapAmount);
