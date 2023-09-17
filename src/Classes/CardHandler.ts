@@ -15,7 +15,9 @@ import fs from "fs";
 import { Currency } from "../types/DBTypes";
 
 const applyGemBonus = (inv: Inventory, baseValue: number) => {
-  let item = [...inv.getItems(), ...inv.getActiveItems()].find((e: any) => e.id === 40);
+  let item = [...inv.getItems(), ...inv.getActiveItems()].find(
+    (e: any) => e.id === 40
+  );
   if (!item) return baseValue;
 
   return Math.round(baseValue * 1.1);
@@ -26,7 +28,11 @@ const applyGemBonus = (inv: Inventory, baseValue: number) => {
  * Mahols Hut
  * Gain +5 gems when using /bz daily
  */
-const handleCard23 = async (card: Item, db: any, interaction: CommandInteraction) => {
+const handleCard23 = async (
+  card: Item,
+  db: any,
+  interaction: CommandInteraction
+) => {
   const baseReward = 3;
 
   const inv = helper.getInventoryAsObject(interaction.user.id);
@@ -108,11 +114,14 @@ const handleCard25 = (card: Item, db: any, interaction: CommandInteraction) => {
     });
   card = foundCard;
 
-  const droppool = JSON.parse(fs.readFileSync("./data/droppool.json", "utf-8"))[0];
+  const droppool = JSON.parse(
+    fs.readFileSync("./data/droppool.json", "utf-8")
+  )[0];
   const celestialCards = [...droppool.items].filter(
     (e: any) => e.rarity.toLowerCase() === "celestial"
   );
-  const randomCelestial = celestialCards[Math.floor(Math.random() * celestialCards.length)];
+  const randomCelestial =
+    celestialCards[Math.floor(Math.random() * celestialCards.length)];
   randomCelestial.amount = 1;
 
   inv.removeItem(card, 25);
@@ -138,10 +147,13 @@ const handleCard25 = (card: Item, db: any, interaction: CommandInteraction) => {
  */
 const toggleCard28 = (card: Item, db: any, interaction: CommandInteraction) => {
   const inv = helper.getInventoryAsObject(interaction.user.id);
-  const isActive = inv.getActiveItems().find((e: any) => e.id === card.id) !== undefined;
+  const isActive =
+    inv.getActiveItems().find((e: any) => e.id === card.id) !== undefined;
   const action = isActive ? "disabled" : "enabled";
 
-  const foundCard = [...inv.getActiveItems(), ...inv.getItems()].find((e) => e.id === card.id);
+  const foundCard = [...inv.getActiveItems(), ...inv.getItems()].find(
+    (e) => e.id === card.id
+  );
   if (!foundCard)
     return interaction.reply({
       content: `You do not own the card \`${card.name}\`.`,
@@ -167,7 +179,11 @@ const toggleCard28 = (card: Item, db: any, interaction: CommandInteraction) => {
  * Job
  * Gain +7 gems when using /bz daily
  */
-const handleCard29 = async (card: Item, db: any, interaction: CommandInteraction) => {
+const handleCard29 = async (
+  card: Item,
+  db: any,
+  interaction: CommandInteraction
+) => {
   const baseValue = 7;
 
   const inv = helper.getInventoryAsObject(interaction.user.id);
@@ -225,14 +241,20 @@ const handleCard30 = async (
         card.name
       }\` because it's currently on cooldown.\nIt is on cooldown for ${
         (card.cardType as Cooldown).cooldown.current
-      } more ${(card.cardType as Cooldown).cooldown.current > 1 ? "turns" : "turn"}.`,
+      } more ${
+        (card.cardType as Cooldown).cooldown.current > 1 ? "turns" : "turn"
+      }.`,
       ephemeral: true,
     });
 
-  let { input, interaction: newInteraction } = await helper.getModalInput(client, interaction, {
-    label: "User ID",
-    title: "Please provide a user to target.",
-  });
+  let { input, interaction: newInteraction } = await helper.getModalInput(
+    client,
+    interaction,
+    {
+      label: "User ID",
+      title: "Please provide a user to target.",
+    }
+  );
   if (!/\d+/.test(input))
     return newInteraction.reply({
       content: "Invalid user id.",
@@ -274,7 +296,9 @@ const handleCard30 = async (
  * Removes dubuffs from target player
  */
 const handleCard31 = (card: Item, db: any, interaction: CommandInteraction) => {
-  return interaction.reply(`Card Interaction for \`${card.name}\` has not been implemented yet.`);
+  return interaction.reply(
+    `Card Interaction for \`${card.name}\` has not been implemented yet.`
+  );
 };
 
 /**
@@ -282,7 +306,11 @@ const handleCard31 = (card: Item, db: any, interaction: CommandInteraction) => {
  * Dumping Grounds
  * Lose 3 scrap gain one Base Set pack (scrap needed to use)
  */
-const handleCard32 = async (card: Item, db: any, interaction: CommandInteraction) => {
+const handleCard32 = async (
+  card: Item,
+  db: any,
+  interaction: CommandInteraction
+) => {
   const scrapCost = 3;
 
   if ((card.cardType as Cooldown).cooldown?.current > 0)
@@ -291,7 +319,9 @@ const handleCard32 = async (card: Item, db: any, interaction: CommandInteraction
         card.name
       }\` because it's currently on cooldown.\nIt is on cooldown for ${
         (card.cardType as Cooldown).cooldown.current
-      } more ${(card.cardType as Cooldown).cooldown.current > 1 ? "turns" : "turn"}.`,
+      } more ${
+        (card.cardType as Cooldown).cooldown.current > 1 ? "turns" : "turn"
+      }.`,
       ephemeral: true,
     });
 
@@ -326,11 +356,15 @@ const handleCard32 = async (card: Item, db: any, interaction: CommandInteraction
   let dropPoolIndex = droppool.findIndex((e: any) => e.code === "alpha");
   let cardPool = {
     common: {
-      pool: droppool[dropPoolIndex].items.filter((e: any) => e.rarity.toLowerCase() === "common"),
+      pool: droppool[dropPoolIndex].items.filter(
+        (e: any) => e.rarity.toLowerCase() === "common"
+      ),
       chance: parseFloat(droppool[dropPoolIndex].rarities.common),
     },
     rare: {
-      pool: droppool[dropPoolIndex].items.filter((e: any) => e.rarity.toLowerCase() === "rare"),
+      pool: droppool[dropPoolIndex].items.filter(
+        (e: any) => e.rarity.toLowerCase() === "rare"
+      ),
       chance: parseFloat(droppool[dropPoolIndex].rarities.rare),
     },
     legendary: {
@@ -349,9 +383,12 @@ const handleCard32 = async (card: Item, db: any, interaction: CommandInteraction
 
   let reward;
   let roll = Math.random() * 1;
-  if (roll <= cardPool.celestial.chance) reward = helper.randomPick(cardPool.celestial.pool);
-  else if (roll <= cardPool.legendary.chance) reward = helper.randomPick(cardPool.legendary.pool);
-  else if (roll <= cardPool.rare.chance) reward = helper.randomPick(cardPool.rare.pool);
+  if (roll <= cardPool.celestial.chance)
+    reward = helper.randomPick(cardPool.celestial.pool);
+  else if (roll <= cardPool.legendary.chance)
+    reward = helper.randomPick(cardPool.legendary.pool);
+  else if (roll <= cardPool.rare.chance)
+    reward = helper.randomPick(cardPool.rare.pool);
   else reward = helper.randomPick(cardPool.common.pool);
 
   inv.addItem(reward);
@@ -393,7 +430,9 @@ const handleCard33 = (card: Item, db: any, interaction: CommandInteraction) => {
         card.name
       }\` because it's currently on cooldown.\nIt is on cooldown for ${
         (card.cardType as Cooldown).cooldown.current
-      } more ${(card.cardType as Cooldown).cooldown.current > 1 ? "turns" : "turn"}.`,
+      } more ${
+        (card.cardType as Cooldown).cooldown.current > 1 ? "turns" : "turn"
+      }.`,
       ephemeral: true,
     });
 
@@ -402,15 +441,21 @@ const handleCard33 = (card: Item, db: any, interaction: CommandInteraction) => {
   let dropPoolIndex = droppool.findIndex((e: any) => e.code === "alpha");
   let cardPool = {
     common: {
-      pool: droppool[dropPoolIndex].items.filter((e: any) => e.rarity.toLowerCase() === "common"),
+      pool: droppool[dropPoolIndex].items.filter(
+        (e: any) => e.rarity.toLowerCase() === "common"
+      ),
       chance: parseFloat(droppool[dropPoolIndex].rarities.common),
     },
     rare: {
-      pool: droppool[dropPoolIndex].items.filter((e: any) => e.rarity.toLowerCase() === "rare"),
+      pool: droppool[dropPoolIndex].items.filter(
+        (e: any) => e.rarity.toLowerCase() === "rare"
+      ),
       chance: parseFloat(droppool[dropPoolIndex].rarities.rare),
     },
     epic: {
-      pool: droppool[dropPoolIndex].items.filter((e: any) => e.rarity.toLowerCase() === "epic"),
+      pool: droppool[dropPoolIndex].items.filter(
+        (e: any) => e.rarity.toLowerCase() === "epic"
+      ),
       chance: parseFloat(droppool[dropPoolIndex].rarities.epic),
     },
     legendary: {
@@ -429,9 +474,12 @@ const handleCard33 = (card: Item, db: any, interaction: CommandInteraction) => {
 
   let reward;
   let roll = Math.random() * 1;
-  if (roll <= cardPool.celestial.chance) reward = helper.randomPick(cardPool.celestial.pool);
-  else if (roll <= cardPool.legendary.chance) reward = helper.randomPick(cardPool.legendary.pool);
-  else if (roll <= cardPool.rare.chance) reward = helper.randomPick(cardPool.rare.pool);
+  if (roll <= cardPool.celestial.chance)
+    reward = helper.randomPick(cardPool.celestial.pool);
+  else if (roll <= cardPool.legendary.chance)
+    reward = helper.randomPick(cardPool.legendary.pool);
+  else if (roll <= cardPool.rare.chance)
+    reward = helper.randomPick(cardPool.rare.pool);
   else reward = helper.randomPick(cardPool.common.pool);
 
   inv.addItem(reward);
@@ -473,7 +521,9 @@ const handleCard34 = (card: Item, db: any, interaction: CommandInteraction) => {
         card.name
       }\` because it's currently on cooldown.\nIt is on cooldown for ${
         (card.cardType as Cooldown).cooldown.current
-      } more ${(card.cardType as Cooldown).cooldown.current > 1 ? "turns" : "turn"}.`,
+      } more ${
+        (card.cardType as Cooldown).cooldown.current > 1 ? "turns" : "turn"
+      }.`,
       ephemeral: true,
     });
 
@@ -495,7 +545,11 @@ const handleCard34 = (card: Item, db: any, interaction: CommandInteraction) => {
  * NPC
  * Gain +50 exp when using /bz daily
  */
-const handleCard35 = async (card: Item, db: any, interaction: CommandInteraction) => {
+const handleCard35 = async (
+  card: Item,
+  db: any,
+  interaction: CommandInteraction
+) => {
   const reward = 50;
   const inv = helper.getInventoryAsObject(interaction.user.id);
   const foundCard = inv.getItems().find((e) => e.id === card.id);
@@ -614,7 +668,11 @@ const handleCard38 = (card: Item, db: any, interaction: CommandInteraction) => {
  * Human Remains
  * Gain between 15 and 30 gems
  */
-const handleCard37 = async (card: Item, db: any, interaction: CommandInteraction) => {
+const handleCard37 = async (
+  card: Item,
+  db: any,
+  interaction: CommandInteraction
+) => {
   const min = 15;
   const max = 30;
 
@@ -629,10 +687,13 @@ const handleCard37 = async (card: Item, db: any, interaction: CommandInteraction
     });
   card = foundCard;
 
-  if (points.rows.length === 0) {
+  if (points.rows.length > 0) {
     let { gems } = points.rows[0];
 
-    let reward = applyGemBonus(inv, Math.round(Math.random() * (max - min)) + min);
+    let reward = applyGemBonus(
+      inv,
+      Math.round(Math.random() * (max - min) + min)
+    );
     gems += reward;
 
     const query = `UPDATE currency SET gems=$1 WHERE id=$2`;
@@ -650,7 +711,7 @@ const handleCard37 = async (card: Item, db: any, interaction: CommandInteraction
       ],
     });
   } else {
-    const reward = Math.round(Math.random() * 60) + 60;
+    const reward = Math.round(Math.random() * (max - min) + min);
     let gems = applyGemBonus(inv, reward);
 
     const query = `INSERT INTO currency VALUES($1,$2,$3,$4)`;
@@ -678,8 +739,14 @@ const handleCard37 = async (card: Item, db: any, interaction: CommandInteraction
  * Collection
  * Gain gems equal to 2*(unique cards owned)
  */
-const handleCard39 = async (card: Item, db: any, interaction: CommandInteraction) => {
-  let points = await db.query(`SELECT * FROM currency WHERE id=$1`, [interaction.user.id]);
+const handleCard39 = async (
+  card: Item,
+  db: any,
+  interaction: CommandInteraction
+) => {
+  let points = await db.query(`SELECT * FROM currency WHERE id=$1`, [
+    interaction.user.id,
+  ]);
 
   let inv = helper.getInventoryAsObject(interaction.user.id);
   const foundCard = inv.getItems().find((e) => e.id === card.id);
@@ -745,14 +812,17 @@ const handleCard39 = async (card: Item, db: any, interaction: CommandInteraction
  */
 const toggleCard40 = (card: Item, db: any, interaction: CommandInteraction) => {
   const inv = helper.getInventoryAsObject(interaction.user.id);
-  const foundCard = [...inv.getItems(), ...inv.getActiveItems()].find((e) => e.id === card.id);
+  const foundCard = [...inv.getItems(), ...inv.getActiveItems()].find(
+    (e) => e.id === card.id
+  );
   if (!foundCard)
     return interaction.reply({
       content: `You do not own the card \`${card.name}\`.`,
     });
   card = foundCard;
 
-  const isActive = inv.getActiveItems().find((e: any) => e.id === card.id) !== undefined;
+  const isActive =
+    inv.getActiveItems().find((e: any) => e.id === card.id) !== undefined;
   const action = isActive ? "disabled" : "enabled";
 
   inv.setActiveItem(card);
@@ -774,7 +844,11 @@ const toggleCard40 = (card: Item, db: any, interaction: CommandInteraction) => {
  * Bank
  * Gain 5% interest on your Gems when using /bz daily (capped at 10/day)
  */
-const handleCard44 = async (card: Item, db: any, interaction: CommandInteraction) => {
+const handleCard44 = async (
+  card: Item,
+  db: any,
+  interaction: CommandInteraction
+) => {
   const cap = 10;
 
   if ((card.cardType as Cooldown).cooldown?.current > 0) return { error: true };
@@ -790,9 +864,12 @@ const handleCard44 = async (card: Item, db: any, interaction: CommandInteraction
   let query = `SELECT * FROM currency WHERE id=$1`;
   let points = await db.query(query, [interaction.user.id]);
 
-  if (points.rows.length === 0 || points.rows[0].gems <= 0) return { error: true };
+  if (points.rows.length === 0 || points.rows[0].gems <= 0)
+    return { error: true };
 
-  let gains = Math.round(applyGemBonus(inv, Math.round(points.rows[0].gems * 0.05)));
+  let gains = Math.round(
+    applyGemBonus(inv, Math.round(points.rows[0].gems * 0.05))
+  );
   if (gains < 1) return { error: true };
   if (gains > cap) gains = cap;
   let newBalance = points.rows[0].gems + gains;
@@ -861,14 +938,20 @@ const handleCard46 = async (
         card.name
       }\` because it's currently on cooldown.\nIt is on cooldown for ${
         (card.cardType as Cooldown).cooldown.current
-      } more ${(card.cardType as Cooldown).cooldown.current > 1 ? "turns" : "turn"}.`,
+      } more ${
+        (card.cardType as Cooldown).cooldown.current > 1 ? "turns" : "turn"
+      }.`,
       ephemeral: true,
     });
 
-  let { input, interaction: newInteraction } = await helper.getModalInput(client, interaction, {
-    label: "User ID",
-    title: "Please provide a user to target.",
-  });
+  let { input, interaction: newInteraction } = await helper.getModalInput(
+    client,
+    interaction,
+    {
+      label: "User ID",
+      title: "Please provide a user to target.",
+    }
+  );
   if (!/\d+/.test(input))
     return newInteraction.reply({
       content: "Invalid user id.",
@@ -939,12 +1022,16 @@ const handleCard47 = (card: Item, db: any, interaction: CommandInteraction) => {
  */
 const handleCard50 = (card: Item, db: any, interaction: CommandInteraction) => {
   const inv = helper.getInventoryAsObject(interaction.user.id);
-  const balthazar = [...inv.getActiveItems(), ...inv.getItems()].find((e: any) => e.id === 50);
+  const balthazar = [...inv.getActiveItems(), ...inv.getItems()].find(
+    (e: any) => e.id === 50
+  );
   if (balthazar && (balthazar.cardType as Cooldown).cooldown.current !== 0)
     return interaction.reply({
       content: `\`${balthazar.name}\` is currently on cooldown for ${
         (balthazar.cardType as Cooldown).cooldown.current
-      } more ${(balthazar.cardType as Cooldown).cooldown.current > 1 ? "turns" : "turn"}.`,
+      } more ${
+        (balthazar.cardType as Cooldown).cooldown.current > 1 ? "turns" : "turn"
+      }.`,
       ephemeral: true,
     });
 
@@ -953,7 +1040,9 @@ const handleCard50 = (card: Item, db: any, interaction: CommandInteraction) => {
     .setLabel("Card Code")
     .setStyle(TextInputStyle.Short);
 
-  const actionRowOne = new ActionRowBuilder<TextInputBuilder>().addComponents(userNameField);
+  const actionRowOne = new ActionRowBuilder<TextInputBuilder>().addComponents(
+    userNameField
+  );
 
   const modal = new ModalBuilder()
     .setCustomId("card_50_pick")
