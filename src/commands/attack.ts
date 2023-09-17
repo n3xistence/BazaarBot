@@ -145,11 +145,11 @@ export const attack: Command = {
       interaction.user.id,
     ]);
     if (ownExp.rows.length === 0) ownExp = { exp: 0 };
-    else ownExp = ownExp.rows[0].exp;
+    else ownExp = ownExp.rows[0];
 
     let targetExp: any = await db.query(`SELECT * FROM BazaarStats WHERE id=$1`, [targetUser.id]);
     if (targetExp.rows.length === 0) targetExp = { exp: 0 };
-    else targetExp = targetExp.rows[0].exp;
+    else targetExp = targetExp.rows[0];
 
     const ownLevel = helper.getLevelData(ownExp.exp).level;
     const targetLevel = helper.getLevelData(targetExp.exp).level;
