@@ -78,7 +78,7 @@ export const add_task_winner: ModalInteraction = {
       });
 
     let newTaskEmbed = new EmbedBuilder()
-      .setTitle(`${helper.emoteBazaar} ${helper.separator} Bazaar Task #${currentTask.rows[0].id}`)
+      .setTitle(`${helper.emoteBazaar} ${helper.separator} Bazaar Task`)
       .setColor("DarkPurple")
       .setDescription(
         `Winners: ${newWinners.length}/${currentTask.rows[0].winners}\n${newWinners
