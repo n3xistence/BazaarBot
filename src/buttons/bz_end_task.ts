@@ -41,18 +41,12 @@ const getApplicableEffects = (inv: Array<any>, options: any, hasRunestoneCard: b
 
       if (effect.type === "additive")
         modifier.additive +=
-          parseFloat(effect.modifier) * item.owner.id === userId &&
-          hasRunestoneCard &&
-          item.cardType === "passive"
-            ? 0.5
-            : 1;
+          parseFloat(effect.modifier) *
+          (item.owner.id === userId && hasRunestoneCard && item.cardType === "passive" ? 0.5 : 1);
       else
         modifier.multiplicative +=
-          parseFloat(effect.modifier) * item.owner.id === userId &&
-          hasRunestoneCard &&
-          item.cardType === "passive"
-            ? 0.5
-            : 1;
+          parseFloat(effect.modifier) *
+          (item.owner.id === userId && hasRunestoneCard && item.cardType === "passive" ? 0.5 : 1);
     }
   }
 
