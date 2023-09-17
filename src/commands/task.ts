@@ -139,7 +139,7 @@ export const task: Command = {
     };
 
     let embed = new EmbedBuilder()
-      .setTitle(`${helper.emoteBazaar} ${helper.separator} Bazaar Task #${task.id}`)
+      .setTitle(`${helper.emoteBazaar} ${helper.separator} Bazaar Task`)
       .setColor("DarkPurple")
       .setDescription(
         `Winners: ${cursed.winners}\nStarted: <t:${task.timestamp}:R>\nRewards: ${cursed.reward}\n\n> ${cursed.description}\n\n${cursed.notes}`
