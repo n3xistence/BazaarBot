@@ -148,6 +148,7 @@ class Inventory {
         this.removeItem(item);
 
         if (item.amount === 1) i--;
+        else this.moveToInventory(item);
       }
     }
   }
