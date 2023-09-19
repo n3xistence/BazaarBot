@@ -817,6 +817,16 @@ const handleCard45 = (card: Item, db: any, interaction: CommandInteraction) => {
   const inv = helper.getInventoryAsObject(interaction.user.id);
   const allItems = [...inv.getItems()];
 
+  if ((card.cardType as Cooldown).cooldown?.current > 0)
+    return interaction.reply({
+      content: `Could not use card \`${
+        card.name
+      }\` because it's currently on cooldown.\nIt is on cooldown for ${
+        (card.cardType as Cooldown).cooldown.current
+      } more ${(card.cardType as Cooldown).cooldown.current > 1 ? "turns" : "turn"}.`,
+      ephemeral: true,
+    });
+
   const dailyCard = [23, 29, 35, 44];
   for (const item of allItems) {
     if (dailyCard.includes(item.id)) continue; // don't reduce daily gem cards
@@ -824,6 +834,13 @@ const handleCard45 = (card: Item, db: any, interaction: CommandInteraction) => {
     item.turn();
   }
 
+  const foundCard = inv.getItems().find((e) => e.id === card.id);
+  if (!foundCard)
+    return interaction.reply({
+      content: `You do not own the card \`${card.name}\`.`,
+    });
+
+  foundCard.resetCooldown();
   helper.updateInventoryRef(inv, interaction.user);
 
   return interaction.reply({
