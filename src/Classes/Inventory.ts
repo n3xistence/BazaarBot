@@ -129,9 +129,12 @@ class Inventory {
         this.moveToInventory(item);
         i--;
       } else if (item.cardType === "trash") {
+        let capturedAmount = item.amount;
+
         this.removeItem(item);
 
-        if (item.amount === 1) i--;
+        if (capturedAmount > 1) this.moveToInventory(item);
+        i--;
       }
     }
   }
@@ -145,10 +148,12 @@ class Inventory {
         this.moveToInventory(item);
         i--;
       } else if (item.cardType === "trash") {
+        let capturedAmount = item.amount;
+
         this.removeItem(item);
 
-        if (item.amount === 1) i--;
-        else this.moveToInventory(item);
+        if (capturedAmount > 1) this.moveToInventory(item);
+        i--;
       }
     }
   }
