@@ -9,6 +9,9 @@ import { Commands } from "../commands/Commands";
 import { ButtonCommands } from "../buttons/ButtonCommands";
 import { Modals } from "../modals/Modals";
 import Logger from "../ext/Logger";
+import * as Helper from "../ext/Helper";
+
+let users: Array<{ userId: string; stamp: number }> = [];
 
 export default (client: Client): void => {
   client.on("interactionCreate", async (interaction: Interaction) => {
@@ -50,6 +53,18 @@ const handleSlashCommand = async (
     if (!slashCommand)
       return interaction.reply({ content: "An error has occurred", ephemeral: true });
 
+    const user = users.find((e) => e.userId === interaction.user.id);
+    if (!user) users.push({ userId: interaction.user.id, stamp: Helper.getUNIXStamp(true) });
+    else {
+      const diff = Helper.getUNIXStamp(true) - user.stamp;
+
+      if (diff < 5000)
+        return interaction.reply({
+          content: `You must wait another **${((5000 - diff) / 1000).toFixed(2)}s**`,
+          ephemeral: true,
+        });
+    }
+
     slashCommand.execute(client, interaction);
   }
 };
@@ -73,3 +88,8 @@ const handleModalSubmit = async (
 
   modal.execute(client, interaction);
 };
+
+// dump the list every 5 minutes to reduce lookup overhead
+setInterval(() => {
+  users = [];
+}, 300_000);

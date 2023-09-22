@@ -3,19 +3,27 @@ import { wrapInColor } from "./Helper";
 const getTimestamp = (): string => new Date().toLocaleTimeString();
 
 const __INFO = (...args: Array<string>): void => {
-  console.log(`${wrapInColor("blue", `${getTimestamp()} [INFO]`)} - ${args.join(" ")}`);
+  console.log(
+    `${wrapInColor("blue", `${getTimestamp()} [INFO]`.padEnd(18, " "))} ${args.join(" ")}`
+  );
 };
 
 const __ERROR = (...args: Array<string>): void => {
-  console.log(`${wrapInColor("red", `${getTimestamp()} [ERROR]`)} - ${args.join(" ")}`);
+  console.log(
+    `${wrapInColor("red", `${getTimestamp()} [ERROR]`.padEnd(18, " "))} ${args.join(" ")}`
+  );
 };
 
 const __WARN = (...args: Array<string>): void => {
-  console.log(`${wrapInColor("yellow", `${getTimestamp()} [WARN]`)} - ${args.join(" ")}`);
+  console.log(
+    `${wrapInColor("yellow", `${getTimestamp()} [WARN]`.padEnd(18, " "))} ${args.join(" ")}`
+  );
 };
 
 const __SUCCESS = (...args: Array<string>): void => {
-  console.log(`${wrapInColor("green", `${getTimestamp()} [SUCCESS]`)} - ${args.join(" ")}`);
+  console.log(
+    `${wrapInColor("green", `${getTimestamp()} [SUCCESS]`.padEnd(18, " "))} ${args.join(" ")}`
+  );
 };
 
 const log = (logLevel: string | null, ...args: Array<string>): void => {

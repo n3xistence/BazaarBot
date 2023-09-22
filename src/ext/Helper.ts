@@ -1,6 +1,7 @@
 import Inventory from "../Classes/Inventory";
 import Pack from "../Classes/Pack";
-import { Cooldown, ItemType } from "../types";
+import * as Database from "../Database";
+import { ItemType } from "../types";
 import Item from "../Classes/Item";
 import * as ch from "../Classes/CardHandler";
 import { createCanvas, loadImage } from "@napi-rs/canvas";
@@ -43,18 +44,12 @@ const wrapInColor = (color: string, str: string): string => {
   return `${clr}${str}${resetColor}`;
 };
 
-const getUNIXStamp = () => Math.floor(new Date().getTime() / 1000);
+const getUNIXStamp = (ms: boolean = false) => Math.floor(new Date().getTime() / (ms ? 1 : 1000));
 
-const randomPick = (array: Array<any>): any =>
-  array[Math.floor(Math.random() * array.length)];
+const randomPick = (array: Array<any>): any => array[Math.floor(Math.random() * array.length)];
 
-const handleToggleCard = (
-  card: Item,
-  db: any,
-  interaction: CommandInteraction
-) => {
-  if (!(card instanceof Item))
-    throw Error("Invalid Argument: Must be an instance of Item.");
+const handleToggleCard = (card: Item, db: any, interaction: CommandInteraction) => {
+  if (!(card instanceof Item)) throw Error("Invalid Argument: Must be an instance of Item.");
 
   let returnValue;
   let cardId = card.id;
@@ -74,8 +69,7 @@ const handleCustomCardUsage = (
   interaction: CommandInteraction,
   client: Client
 ) => {
-  if (!(card instanceof Item))
-    throw Error("Invalid Argument: Must be an instance of Item.");
+  if (!(card instanceof Item)) throw Error("Invalid Argument: Must be an instance of Item.");
 
   let cardId = card.id;
   let returnValue;
@@ -132,13 +126,8 @@ const handleCustomCardUsage = (
   return returnValue;
 };
 
-const handlePostTaskCard = (
-  card: Item,
-  db: any,
-  interaction: CommandInteraction
-) => {
-  if (!(card instanceof Item))
-    throw Error("Invalid Argument: Must be an instance of Item.");
+const handlePostTaskCard = (card: Item, db: any, interaction: CommandInteraction) => {
+  if (!(card instanceof Item)) throw Error("Invalid Argument: Must be an instance of Item.");
 
   let cardId = card.id;
   switch (cardId) {
@@ -163,20 +152,14 @@ const handlePostTaskCard = (
 };
 
 const getInventoryAsObject = (userId: string) => {
-  const currentInventories = JSON.parse(
-    fs.readFileSync("./data/inventories.json", "utf-8")
-  );
+  const currentInventories = JSON.parse(fs.readFileSync("./data/inventories.json", "utf-8"));
 
   let userObject = currentInventories.find((e: any) => e.userId === userId);
-  return userObject
-    ? new Inventory().fromJSON(userObject.inventory)
-    : new Inventory();
+  return userObject ? new Inventory().fromJSON(userObject.inventory) : new Inventory();
 };
 
 const updateInventoryRef = (inv: Inventory, user: any) => {
-  const currentInventories = JSON.parse(
-    fs.readFileSync("./data/inventories.json", "utf-8")
-  );
+  const currentInventories = JSON.parse(fs.readFileSync("./data/inventories.json", "utf-8"));
 
   let index = currentInventories.findIndex((e: any) => e.userId === user.id);
   if (index < 0) {
@@ -188,32 +171,21 @@ const updateInventoryRef = (inv: Inventory, user: any) => {
   } else {
     currentInventories[index].inventory = inv;
   }
-  fs.writeFileSync(
-    "./data/inventories.json",
-    JSON.stringify(currentInventories, null, "\t")
-  );
+
+  fs.writeFileSync("./data/inventories.json", JSON.stringify(currentInventories, null, "\t"));
 };
 
-const updateTotalPacksOpened = async (
-  user: any,
-  db: any,
-  amount: number = 1
-) => {
+const updateTotalPacksOpened = async (user: any, db: any, amount: number = 1) => {
   const exp = 20;
 
-  const currentStats = await db.query(`SELECT * FROM BazaarStats WHERE id=$1`, [
-    user.id,
-  ]);
+  const currentStats = await db.query(`SELECT * FROM BazaarStats WHERE id=$1`, [user.id]);
 
   if (currentStats.rows.length > 0) {
     const stats = JSON.parse(currentStats.rows[0].stats);
     let newTotal = parseInt(stats.packs_opened ?? 0) + amount;
     stats.packs_opened = newTotal;
 
-    db.query(`UPDATE BazaarStats SET stats=$1 WHERE id=$2`, [
-      JSON.stringify(stats),
-      user.id,
-    ]);
+    db.query(`UPDATE BazaarStats SET stats=$1 WHERE id=$2`, [JSON.stringify(stats), user.id]);
   } else {
     db.query(`INSERT INTO BazaarStats VALUES($1,$2,$3,$4,$5)`, [
       user.id,
@@ -231,9 +203,7 @@ const updateTotalEXP = async (
   amount: number,
   value: number = 100
 ) => {
-  const currentEXP = await db.query(`SELECT * FROM BazaarStats WHERE id=$1`, [
-    interaction.user.id,
-  ]);
+  const currentEXP = await db.query(`SELECT * FROM BazaarStats WHERE id=$1`, [interaction.user.id]);
 
   if (currentEXP.rows.length > 0) {
     let formerLevel = getLevelData(currentEXP.rows[0].exp).level;
@@ -253,10 +223,7 @@ const updateTotalEXP = async (
     }
 
     let newTotal = parseInt(currentEXP.rows[0].exp) + amount * value;
-    db.query(`UPDATE BazaarStats SET exp=$1 WHERE id=$2`, [
-      newTotal,
-      interaction.user.id,
-    ]);
+    db.query(`UPDATE BazaarStats SET exp=$1 WHERE id=$2`, [newTotal, interaction.user.id]);
   } else {
     if (getLevelData(value).level >= 1)
       interaction.channel?.send({
@@ -267,9 +234,7 @@ const updateTotalEXP = async (
             .setDescription(
               `${emoteApprove} ${separator} ${
                 interaction.user
-              } just leveled up! They are now level ${
-                getLevelData(value).level
-              }`
+              } just leveled up! They are now level ${getLevelData(value).level}`
             ),
         ],
       });
@@ -285,20 +250,13 @@ const updateTotalEXP = async (
 };
 
 const addScrap = async (user: any, db: any, amount: number) => {
-  const currentScrap = await db.query(`SELECT * FROM currency WHERE id=$1`, [
-    user.id,
-  ]);
+  const currentScrap = await db.query(`SELECT * FROM currency WHERE id=$1`, [user.id]);
 
   if (currentScrap.rows.length > 0) {
     let newTotal = parseInt(currentScrap.rows[0].scrap) + amount;
     db.query(`UPDATE currency SET scrap=$1 WHERE id=$2`, [newTotal, user.id]);
   } else {
-    db.query(`INSERT INTO currency VALUES($1,$2,$3,$4)`, [
-      user.id,
-      0,
-      0,
-      amount,
-    ]);
+    db.query(`INSERT INTO currency VALUES($1,$2,$3,$4)`, [user.id, 0, 0, amount]);
   }
 };
 
@@ -350,19 +308,12 @@ const bz_getHealth = (inv: Inventory, level: number) => {
     common: uniqueItems.common.reduce((acc, item) => acc + item.amount, 0) * 3,
     rare: uniqueItems.rare.reduce((acc, item) => acc + item.amount, 0) * 15,
     epic: uniqueItems.epic.reduce((acc, item) => acc + item.amount, 0) * 25,
-    legendary:
-      uniqueItems.legendary.reduce((acc, item) => acc + item.amount, 0) * 50,
-    celestial:
-      uniqueItems.celestial.reduce((acc, item) => acc + item.amount, 0) * 250,
+    legendary: uniqueItems.legendary.reduce((acc, item) => acc + item.amount, 0) * 50,
+    celestial: uniqueItems.celestial.reduce((acc, item) => acc + item.amount, 0) * 250,
   };
 
   return (
-    totals.common +
-    totals.rare +
-    totals.epic +
-    totals.legendary +
-    totals.celestial +
-    level * 25
+    totals.common + totals.rare + totals.epic + totals.legendary + totals.celestial + level * 25
   );
 };
 
@@ -393,12 +344,60 @@ const bz_getDamage = (inv: Inventory, level: number) => {
     celestial: uniqueItems.celestial.length * 50,
   };
 
-  const totalDamage =
-    Object.values(totals).reduce((acc, val) => acc + val, 0) + level * 2;
+  const totalDamage = Object.values(totals).reduce((acc, val) => acc + val, 0) + level * 2;
   const rng = Math.random() * 2 - 1;
   const tenPercent = totalDamage * 0.1;
 
   return Math.round(totalDamage + tenPercent * rng);
+};
+
+const updatePVPScore = async (user: any, targetUser: any, db: any): Promise<void> => {
+  let ownExp, targetExp;
+  const query = `SELECT * FROM BazaarStats WHERE id=$1`;
+
+  const ownExpData = await db.query(query, [user.id]);
+  if (ownExpData.rows.length === 0) ownExp = { exp: 0 };
+  else ownExp = ownExpData.rows[0];
+
+  const targetExpData = await db.query(query, [targetUser.id]);
+  if (targetExpData.rows.length === 0) targetExp = { exp: 0 };
+  else targetExp = targetExpData.rows[0];
+
+  const ownLevel = getLevelData(ownExp.exp).level;
+  const targetLevel = getLevelData(targetExp.exp).level;
+
+  let ownScore = await db.query(`SELECT weekly,monthly,total FROM pvpdata WHERE id=$1`, [user.id]);
+  if (ownScore.rows.length > 0) ownScore = ownScore.rows[0];
+  else
+    ownScore = {
+      weekly: 0,
+      monthly: 0,
+      total: 0,
+    } as { [k: string]: any };
+
+  const points = Math.round(
+    (targetLevel / ownLevel < 1 ? 1 : ownLevel) * targetLevel + targetLevel * 0.1
+  );
+
+  for (const key of Object.keys(ownScore)) {
+    ownScore[key] += points;
+  }
+
+  db.query(
+    `INSERT INTO pvpdata VALUES ($1, $2, $3, $4, $5, $6, $7, $8) ON CONFLICT(id) DO UPDATE SET weekly=$2, monthly=$3, total=$4`,
+    [user.id, ...Object.values(ownScore), 0, 0, "false", "false"]
+  );
+};
+
+const getWeeklyRewardPlacement = async (user: any): Promise<number | null> => {
+  let placement: number;
+  const db = Database.init();
+
+  const { rows } = await db.query(`SELECT id,weekly FROM pvpdata ORDER BY weekly DESC LIMIT 10`);
+
+  placement = rows.findIndex((e) => e.id === user.id);
+
+  return placement < 0 ? null : placement;
 };
 
 const userUsedPostCard = async (user: any, db: any) => {
@@ -431,9 +430,7 @@ const updatePostCardUsed = async (card: Item, db: any, user: any) => {
 };
 
 const updatePVPStats = async (user: any, db: any, result: number) => {
-  const currentStats = await db.query(`SELECT * FROM BazaarStats WHERE id=$1`, [
-    user.id,
-  ]);
+  const currentStats = await db.query(`SELECT * FROM BazaarStats WHERE id=$1`, [user.id]);
 
   if (currentStats.rows.length > 0) {
     let stats = JSON.parse(currentStats.rows[0].stats); // fill the obect with the default values in case user has not participated in pvp yet
@@ -445,10 +442,7 @@ const updatePVPStats = async (user: any, db: any, result: number) => {
     if (result > 0) stats.pvp_stats.wins = stats.pvp_stats.wins + result;
     else stats.pvp_stats.losses = stats.pvp_stats.losses + Math.abs(result);
 
-    db.query(`UPDATE BazaarStats SET stats=$1 WHERE id=$2`, [
-      JSON.stringify(stats),
-      user.id,
-    ]);
+    db.query(`UPDATE BazaarStats SET stats=$1 WHERE id=$2`, [JSON.stringify(stats), user.id]);
   } else {
     let stats = {
       pvp_stats: {
@@ -468,19 +462,14 @@ const updatePVPStats = async (user: any, db: any, result: number) => {
 };
 
 const updateTasksWon = async (user: any, db: any) => {
-  const currentStats = await db.query(`SELECT * FROM BazaarStats WHERE id=$1`, [
-    user.id,
-  ]);
+  const currentStats = await db.query(`SELECT * FROM BazaarStats WHERE id=$1`, [user.id]);
 
   if (currentStats.rows.length > 0) {
     const stats = JSON.parse(currentStats.rows[0].stats);
     let newTotal = parseInt(stats.tasks_won ?? 0) + 1;
     stats.tasks_won = newTotal;
 
-    db.query(`UPDATE BazaarStats SET stats=$1 WHERE id=$2`, [
-      JSON.stringify(stats),
-      user.id,
-    ]);
+    db.query(`UPDATE BazaarStats SET stats=$1 WHERE id=$2`, [JSON.stringify(stats), user.id]);
   } else {
     db.query(`INSERT INTO BazaarStats VALUES($1,$2,$3,$4,$5)`, [
       user.id,
@@ -492,24 +481,15 @@ const updateTasksWon = async (user: any, db: any) => {
   }
 };
 
-const updateCardsLiquidated = async (
-  user: any,
-  db: any,
-  amount: number = 1
-) => {
-  const currentStats = await db.query(`SELECT * FROM BazaarStats WHERE id=$1`, [
-    user.id,
-  ]);
+const updateCardsLiquidated = async (user: any, db: any, amount: number = 1) => {
+  const currentStats = await db.query(`SELECT * FROM BazaarStats WHERE id=$1`, [user.id]);
 
   if (currentStats.rows.length > 0) {
     const stats = JSON.parse(currentStats.rows[0].stats);
     let newTotal = parseInt(stats.cards_liquidated ?? 0) + amount;
     stats.cards_liquidated = newTotal;
 
-    db.query(`UPDATE BazaarStats SET stats=$1 WHERE id=$2`, [
-      JSON.stringify(stats),
-      user.id,
-    ]);
+    db.query(`UPDATE BazaarStats SET stats=$1 WHERE id=$2`, [JSON.stringify(stats), user.id]);
   } else {
     db.query(`INSERT INTO BazaarStats VALUES($1,$2,$3,$4,$5)`, [
       user.id,
@@ -532,9 +512,7 @@ const getModalInput = (
       .setLabel(options.label ?? "User Input")
       .setStyle(TextInputStyle.Short);
 
-    const actionRow = new ActionRowBuilder<TextInputBuilder>().addComponents(
-      defaultField
-    );
+    const actionRow = new ActionRowBuilder<TextInputBuilder>().addComponents(defaultField);
 
     const modal = new ModalBuilder()
       .setCustomId("default_input_modal")
@@ -547,9 +525,7 @@ const getModalInput = (
       if (!modalInteraction.isModalSubmit()) return;
       if (modalInteraction.customId !== "default_input_modal") return;
 
-      const input = modalInteraction.fields.getTextInputValue(
-        "default_input_field"
-      );
+      const input = modalInteraction.fields.getTextInputValue("default_input_field");
 
       client.off("interactionCreate", listener);
 
@@ -567,11 +543,7 @@ const getModalInput = (
   });
 };
 
-const updateItemProperties = (
-  inventories: Array<any>,
-  item: ItemType,
-  { global = true }
-) => {
+const updateItemProperties = (inventories: Array<any>, item: ItemType, { global = true }) => {
   if (!global) return;
 
   for (const entry of inventories) {
@@ -586,8 +558,7 @@ const updateItemProperties = (
       inv.activeItems[activeIndex].amount = oldItem.amount;
       if (typeof newItem.cardType !== "string") {
         newItem.cardType.cooldown.current =
-          oldItem.cardType.cooldown?.current ??
-          newItem.cardType.cooldown.current;
+          oldItem.cardType.cooldown?.current ?? newItem.cardType.cooldown.current;
       }
 
       if (
@@ -596,8 +567,7 @@ const updateItemProperties = (
       ) {
         inv.moveToInventory(inv.activeItems[activeIndex]);
 
-        if (typeof newItem.cardType !== "string")
-          newItem.cardType.cooldown.current = 0;
+        if (typeof newItem.cardType !== "string") newItem.cardType.cooldown.current = 0;
       }
 
       updateInventoryRef(inv, { id: entry.userId, username: entry.userName });
@@ -612,23 +582,17 @@ const updateItemProperties = (
       inv.list[generalIndex].amount = oldItem.amount;
       if (typeof newItem.cardType !== "string") {
         newItem.cardType.cooldown.current =
-          oldItem.cardType.cooldown?.current ??
-          newItem.cardType.cooldown.current;
+          oldItem.cardType.cooldown?.current ?? newItem.cardType.cooldown.current;
       }
 
-      if (inv.list[generalIndex].cardType === "passive")
-        inv.setActiveItem(inv.list[generalIndex]);
+      if (inv.list[generalIndex].cardType === "passive") inv.setActiveItem(inv.list[generalIndex]);
 
       updateInventoryRef(inv, { id: entry.userId, username: entry.userName });
     }
   }
 };
 
-const updatePackProperties = (
-  inventories: Array<any>,
-  pack: Pack,
-  { global = true }
-) => {
+const updatePackProperties = (inventories: Array<any>, pack: Pack, { global = true }) => {
   if (!global) return;
 
   for (const entry of inventories) {
@@ -795,6 +759,8 @@ export {
   getProgressBar,
   bz_getHealth,
   bz_getDamage,
+  updatePVPScore,
+  getWeeklyRewardPlacement,
   userUsedPostCard,
   updatePostCardUsed,
   updatePVPStats,
