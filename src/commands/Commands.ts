@@ -25,6 +25,7 @@ import { trade } from "./trade";
 import { tradelist } from "./tradelist";
 import { use } from "./use";
 import { view } from "./view";
+import { access } from "./access";
 
 export const Commands: Array<Command> = [
   info,
@@ -52,4 +53,5 @@ export const Commands: Array<Command> = [
   additem,
   removeitem,
   attack,
+  access,
 ];

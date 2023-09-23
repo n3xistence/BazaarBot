@@ -9,17 +9,18 @@ import {
 import * as helper from "../ext/Helper";
 import * as Database from "../Database";
 import { Bazaar } from "../types/DBTypes";
+import AccessValidator from "../Classes/AccessValidator";
 
 export const decrypptask: any = {
   customId: "decrypttask",
   async execute(client: Client, interaction: ButtonInteraction) {
-    if (!interaction.member) return;
-
     const db = Database.init();
-    let hasperms = (interaction.member.permissions as any).has("ManageGuild");
-    if (!hasperms && interaction.user.id !== "189764769312407552")
+    const { rows: accessEntry } = await db.query(`SELECT level FROM accesslevel WHERE id=$1`, [
+      interaction.user.id,
+    ]);
+    if (accessEntry.length === 0 || !new AccessValidator(accessEntry[0].level, "ADMIN").validate())
       return interaction.reply({
-        content: `Invalid authorisation`,
+        content: "Invalid Authorisation.",
         ephemeral: true,
       });
 

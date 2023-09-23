@@ -3,6 +3,8 @@ import Item from "../Classes/Item";
 import { Command } from "./ICommand";
 import { Client, CommandInteraction, EmbedBuilder } from "discord.js";
 import fs from "node:fs";
+import * as Database from "../Database";
+import AccessValidator from "../Classes/AccessValidator";
 
 export const additem: Command = {
   name: "additem",
@@ -17,12 +19,14 @@ export const additem: Command = {
   ],
   async execute(client: Client, interaction: CommandInteraction) {
     if (!interaction.isChatInputCommand()) return;
-    if (!interaction.member) return;
 
-    let hasperms = (interaction.member.permissions as any).has("ManageGuild");
-    if (!hasperms && interaction.user.id !== "189764769312407552")
+    const db = Database.init();
+    const { rows: accessEntry } = await db.query(`SELECT level FROM accesslevel WHERE id=$1`, [
+      interaction.user.id,
+    ]);
+    if (accessEntry.length === 0 || !new AccessValidator(accessEntry[0].level, "ADMIN").validate())
       return interaction.reply({
-        content: `Invalid authorisation`,
+        content: "Invalid Authorisation.",
         ephemeral: true,
       });
 

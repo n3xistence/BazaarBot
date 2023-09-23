@@ -22,7 +22,7 @@ export default (client: Client): void => {
         `/${interaction.commandName} - ${interaction.user.username} (${interaction.user.id})`
       );
 
-      await handleSlashCommand(client, interaction);
+      handleSlashCommand(client, interaction);
     }
 
     if (interaction.isButton()) {
@@ -31,7 +31,7 @@ export default (client: Client): void => {
         `[${interaction.customId}] - ${interaction.user.username} (${interaction.user.id})`
       );
 
-      await handleButtonCommand(client, interaction);
+      handleButtonCommand(client, interaction);
     }
 
     if (interaction.isModalSubmit()) {
@@ -40,7 +40,7 @@ export default (client: Client): void => {
         `{${interaction.customId}} - ${interaction.user.username} (${interaction.user.id})`
       );
 
-      await handleModalSubmit(client, interaction);
+      handleModalSubmit(client, interaction);
     }
   });
 };
