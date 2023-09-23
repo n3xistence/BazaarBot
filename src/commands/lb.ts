@@ -67,8 +67,6 @@ const createEmbeds = (statLists: any) => {
     });
   }
 
-  console.log(statLists);
-
   let weeklyPVPEmbed = new EmbedBuilder()
     .setTitle(`${helper.emoteBazaar} PVP Weekly ${helper.emoteBazaar}`)
     .setColor("#ad2828");
