@@ -63,7 +63,39 @@ const createEmbeds = (statLists: any) => {
   for (let i = 0; i < statLists.winrate.length; i++) {
     winrateEmbed.addFields({
       name: `${i + 1}. ${statLists.winrate[i].name}`,
-      value: `${helper.emoteBazaar_PVP} ${parseInt(statLists.winrate[i].stats.winrate) * 100}%`,
+      value: `${helper.emoteBazaar_PVP} ${(statLists.winrate[i].stats.winrate * 100).toFixed(2)}%`,
+    });
+  }
+
+  console.log(statLists);
+
+  let weeklyPVPEmbed = new EmbedBuilder()
+    .setTitle(`${helper.emoteBazaar} PVP Weekly ${helper.emoteBazaar}`)
+    .setColor("#ad2828");
+  for (let i = 0; i < statLists.weekly_pvp.length; i++) {
+    weeklyPVPEmbed.addFields({
+      name: `${i + 1}. ${statLists.weekly_pvp[i].name}`,
+      value: `${helper.emoteBazaar_PVP} ${statLists.weekly_pvp[i].weekly} points`,
+    });
+  }
+
+  let monthlyPVPEmbed = new EmbedBuilder()
+    .setTitle(`${helper.emoteBazaar} PVP Monthly ${helper.emoteBazaar}`)
+    .setColor("#ad2828");
+  for (let i = 0; i < statLists.monthly_pvp.length; i++) {
+    monthlyPVPEmbed.addFields({
+      name: `${i + 1}. ${statLists.monthly_pvp[i].name}`,
+      value: `${helper.emoteBazaar_PVP} ${statLists.monthly_pvp[i].monthly} points`,
+    });
+  }
+
+  let alltimePVPEmbed = new EmbedBuilder()
+    .setTitle(`${helper.emoteBazaar} PVP All Time ${helper.emoteBazaar}`)
+    .setColor("#ad2828");
+  for (let i = 0; i < statLists.alltime.length; i++) {
+    alltimePVPEmbed.addFields({
+      name: `${i + 1}. ${statLists.alltime[i].name}`,
+      value: `${helper.emoteBazaar_PVP} ${statLists.alltime[i].monthly} points`,
     });
   }
 
@@ -99,7 +131,16 @@ const createEmbeds = (statLists: any) => {
 
   return {
     collectors: [uniqueEmbed, packsOpenedEmbed, cardsLiquidatedEmbed, allCardsEmbed],
-    stats: [levelsEmbed, winrateEmbed, gemsEmbed, scrapEmbed, tasksWonEmbed],
+    stats: [
+      levelsEmbed,
+      winrateEmbed,
+      weeklyPVPEmbed,
+      monthlyPVPEmbed,
+      alltimePVPEmbed,
+      gemsEmbed,
+      scrapEmbed,
+      tasksWonEmbed,
+    ],
   };
 };
 
@@ -117,11 +158,7 @@ export const lb: Command = {
   async execute(client: Client, interaction: CommandInteraction) {
     if (!interaction.isChatInputCommand()) return;
 
-    const db = Database.init();
     let type = interaction.options.getString("type");
-
-    const userList = await db.query(`SELECT * FROM BazaarStats`);
-
     if (type)
       return interaction.reply({
         content: "This feature is currently under construction.",
@@ -129,6 +166,9 @@ export const lb: Command = {
       });
 
     await interaction.deferReply();
+
+    const db = Database.init();
+    const userList = await db.query(`SELECT * FROM BazaarStats`);
 
     if (!type) {
       for (const user of userList.rows) {
@@ -139,7 +179,7 @@ export const lb: Command = {
         const pointData = await db.query(`SELECT * FROM currency WHERE id=$1`, [user.id]);
 
         const stats = JSON.parse(user.stats);
-        const totalFights = stats.pvp_stats?.wins ?? 0 + stats.pvp_stats?.losses ?? 0;
+        const totalFights = (stats.pvp_stats?.wins ?? 0) + (stats.pvp_stats?.losses ?? 0);
         const winrate = totalFights > 0 ? stats.pvp_stats?.wins / totalFights : 0;
 
         const statObj = {
@@ -164,7 +204,7 @@ export const lb: Command = {
         user.name = usr.username;
       }
 
-      const lb = {
+      const lb: { [k: string]: any } = {
         uniqueCards: [...userList.rows]
           .sort((a, b) => b.stats.uniqueCards - a.stats.uniqueCards)
           .slice(0, 10),
@@ -186,6 +226,43 @@ export const lb: Command = {
           .sort((a, b) => b.stats.tasksWon - a.stats.tasksWon)
           .slice(0, 10),
       };
+
+      let { rows: weeklyRows } = await db.query(
+        `SELECT id,weekly FROM pvpdata ORDER BY weekly DESC LIMIT 10`
+      );
+      for (const row of weeklyRows) {
+        row.name = (
+          await client.users.fetch(row.id).catch(() => ({
+            username: "Unknown",
+          }))
+        ).username;
+      }
+
+      let { rows: monthlyRows } = await db.query(
+        `SELECT id,monthly FROM pvpdata ORDER BY monthly DESC LIMIT 10`
+      );
+      for (const row of monthlyRows) {
+        row.name = (
+          await client.users.fetch(row.id).catch(() => ({
+            username: "Unknown",
+          }))
+        ).username;
+      }
+
+      let { rows: alltimeRows } = await db.query(
+        `SELECT id,monthly FROM pvpdata ORDER BY monthly DESC LIMIT 10`
+      );
+      for (const row of alltimeRows) {
+        row.name = (
+          await client.users.fetch(row.id).catch(() => ({
+            username: "Unknown",
+          }))
+        ).username;
+      }
+
+      lb.weekly_pvp = weeklyRows;
+      lb.monthly_pvp = monthlyRows;
+      lb.alltime = alltimeRows;
 
       let embeds = createEmbeds(lb);
 

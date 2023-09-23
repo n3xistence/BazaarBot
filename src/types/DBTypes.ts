@@ -30,3 +30,11 @@ export type Bazaar = {
   // Add guild_id
   // to ensure we can handle multiple active tasks across servers
 };
+
+export type PVPScore = {
+  id: number;
+  score: string;
+  past_score: string;
+  weekly_claimed: string;
+  monthly_claimed: string;
+};

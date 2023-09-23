@@ -47,6 +47,16 @@ cron.schedule("00 13 * * *", Jobs.UpdateCooldown, {
   timezone: "Europe/London",
 });
 
+cron.schedule("00 13 * * 0", Jobs.PVPReset_Weekly, {
+  timezone: "Europe/London",
+});
+
+for (const tab of Jobs.monthlyTabs) {
+  cron.schedule(tab, Jobs.PVPReset_Monthly, {
+    timezone: "Europe/London",
+  });
+}
+
 /**
  * LOGIN
  */
