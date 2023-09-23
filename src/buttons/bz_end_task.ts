@@ -3,6 +3,7 @@ import fs from "fs";
 import * as Database from "../Database";
 import * as helper from "../ext/Helper";
 import Item from "../Classes/Item";
+import AccessValidator from "../Classes/AccessValidator";
 
 const getAllActiveItems = (data: any, type: string) => {
   let activeItems: Array<Item> = [];
@@ -76,7 +77,7 @@ const handleTaskEnd = async (db: any, interaction: any, client: Client) => {
     }.\nAre you sure you would like to end the task regardless?`;
 
     const res = await helper.confirm(interaction, client, {
-      message: notice,
+      content: notice,
       ephemeral: true,
     });
 
@@ -213,12 +214,14 @@ export const bz_end_task: any = {
   customId: "bz_end_task",
   async execute(client: Client, interaction: ButtonInteraction) {
     if (interaction.message.partial) await interaction.message.fetch();
-    if (!interaction.member) return;
 
-    let hasperms = (interaction.member.permissions as any).has("ManageGuild");
-    if (!hasperms && interaction.user.id !== "189764769312407552")
+    const db = Database.init();
+    const { rows: accessEntry } = await db.query(`SELECT level FROM accesslevel WHERE id=$1`, [
+      interaction.user.id,
+    ]);
+    if (accessEntry.length === 0 || !new AccessValidator(accessEntry[0].level, "ADMIN").validate())
       return interaction.reply({
-        content: `Invalid authorisation`,
+        content: "Invalid Authorisation.",
         ephemeral: true,
       });
 
@@ -231,7 +234,6 @@ export const bz_end_task: any = {
       ephemeral: true,
     });
 
-    const db = Database.init();
     if (res) {
       const taskRes: any = await handleTaskEnd(db, interaction, client);
       if (!taskRes || taskRes.void) return;

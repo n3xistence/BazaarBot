@@ -4,14 +4,20 @@ import fs from "node:fs";
 import axios from "axios";
 import decompress from "decompress";
 import Logger from "../ext/Logger";
+import * as Database from "../Database";
+import AccessValidator from "../Classes/AccessValidator";
 
 export const setcardsprites: PrefixCommand = {
   name: "setcardsprites",
   async execute(client: Client, message: Message) {
     if (!message.member) return;
 
-    let hasperms = message.member.permissions.has("ManageGuild");
-    if (!hasperms && message.author.id !== "189764769312407552") return;
+    const db = Database.init();
+    const { rows: accessEntry } = await db.query(`SELECT level FROM accesslevel WHERE id=$1`, [
+      message.author.id,
+    ]);
+    if (accessEntry.length === 0 || !new AccessValidator(accessEntry[0].level, "ADMIN").validate())
+      return;
 
     const attachment = message.attachments.first();
 

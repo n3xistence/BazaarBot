@@ -6,14 +6,21 @@ import Pack from "../Classes/Pack";
 import fs from "node:fs";
 import axios from "axios";
 import Logger from "../ext/Logger";
+import * as Database from "../Database";
+import AccessValidator from "../Classes/AccessValidator";
 
 export const setitems: PrefixCommand = {
   name: "setitems",
   async execute(client: Client, message: Message) {
     if (!message.member) return;
 
-    let hasperms = message.member.permissions.has("ManageGuild");
-    if (!hasperms && message.author.id !== "189764769312407552") return;
+    const db = Database.init();
+    const { rows: accessEntry } = await db.query(`SELECT level FROM accesslevel WHERE id=$1`, [
+      message.author.id,
+    ]);
+    if (accessEntry.length === 0 || !new AccessValidator(accessEntry[0].level, "ADMIN").validate())
+      return;
+
     const inventories = JSON.parse(fs.readFileSync("./data/inventories.json", "utf-8"));
 
     const xlsx = require("read-excel-file/node");

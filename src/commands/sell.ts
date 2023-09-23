@@ -33,12 +33,10 @@ export const sell: Command = {
 
     let inv: Inventory = helper.getInventoryAsObject(interaction.user.id);
 
-    let hasMarket = [...inv.getActiveItems(), ...inv.getItems()].find(
-      (e) => e.id === 22
-    );
+    let hasMarket = [...inv.getActiveItems(), ...inv.getItems()].find((e) => e.id === 22);
     if (!hasMarket)
       return interaction.reply({
-        content: `You must own the card \`Diamond Market\` to sell cards.`,
+        content: `You must own the card \`Merchant\` to sell cards.`,
         ephemeral: true,
       });
 
@@ -81,23 +79,13 @@ export const sell: Command = {
         break;
     }
 
-    let balance = await db.query(`SELECT * FROM currency WHERE id=$1`, [
-      interaction.user.id,
-    ]);
+    let balance = await db.query(`SELECT * FROM currency WHERE id=$1`, [interaction.user.id]);
 
     if (balance.rows.length === 0) {
-      db.query(`INSERT INTO currency VALUES ($1,$2,$3,$4)`, [
-        interaction.user.id,
-        0,
-        gemYield,
-        0,
-      ]);
+      db.query(`INSERT INTO currency VALUES ($1,$2,$3,$4)`, [interaction.user.id, 0, gemYield, 0]);
     } else {
       let newBalance = balance.rows[0].gems + gemYield;
-      db.query(`UPDATE currency SET gems=$1 WHERE id=$2`, [
-        newBalance,
-        interaction.user.id,
-      ]);
+      db.query(`UPDATE currency SET gems=$1 WHERE id=$2`, [newBalance, interaction.user.id]);
     }
 
     inv.removeItem(card, sellAmount);

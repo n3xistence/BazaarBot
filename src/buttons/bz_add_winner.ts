@@ -6,17 +6,21 @@ import {
   ButtonInteraction,
   Client,
 } from "discord.js";
+import * as Database from "../Database";
+import AccessValidator from "../Classes/AccessValidator";
 
 export const bz_add_winner: any = {
   customId: "bz_add_winner",
   async execute(client: Client, interaction: ButtonInteraction) {
     if (interaction.message.partial) await interaction.message.fetch();
-    if (!interaction.member) return;
 
-    let hasperms = (interaction.member.permissions as any).has("ManageGuild");
-    if (!hasperms && interaction.user.id !== "189764769312407552")
+    const db = Database.init();
+    const { rows: accessEntry } = await db.query(`SELECT level FROM accesslevel WHERE id=$1`, [
+      interaction.user.id,
+    ]);
+    if (accessEntry.length === 0 || !new AccessValidator(accessEntry[0].level, "ADMIN").validate())
       return interaction.reply({
-        content: `Invalid authorisation`,
+        content: "Invalid Authorisation.",
         ephemeral: true,
       });
 

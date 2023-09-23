@@ -1,6 +1,8 @@
 import Inventory from "../Classes/Inventory";
 import Pack from "../Classes/Pack";
-import { Cooldown, ItemType } from "../types";
+import * as Database from "../Database";
+import { ItemType } from "../types";
+import pg from "pg";
 import Item from "../Classes/Item";
 import * as ch from "../Classes/CardHandler";
 import { createCanvas, loadImage } from "@napi-rs/canvas";
@@ -13,9 +15,12 @@ import {
   Client,
   CommandInteraction,
   EmbedBuilder,
+  InteractionReplyOptions,
   ModalBuilder,
+  ModalSubmitInteraction,
   TextInputBuilder,
   TextInputStyle,
+  User,
 } from "discord.js";
 import fs from "node:fs";
 
@@ -43,18 +48,12 @@ const wrapInColor = (color: string, str: string): string => {
   return `${clr}${str}${resetColor}`;
 };
 
-const getUNIXStamp = () => Math.floor(new Date().getTime() / 1000);
+const getUNIXStamp = (ms: boolean = false) => Math.floor(new Date().getTime() / (ms ? 1 : 1000));
 
-const randomPick = (array: Array<any>): any =>
-  array[Math.floor(Math.random() * array.length)];
+const randomPick = (array: Array<any>): any => array[Math.floor(Math.random() * array.length)];
 
-const handleToggleCard = (
-  card: Item,
-  db: any,
-  interaction: CommandInteraction
-) => {
-  if (!(card instanceof Item))
-    throw Error("Invalid Argument: Must be an instance of Item.");
+const handleToggleCard = (card: Item, db: pg.Client, interaction: CommandInteraction) => {
+  if (!(card instanceof Item)) throw Error("Invalid Argument: Must be an instance of Item.");
 
   let returnValue;
   let cardId = card.id;
@@ -70,12 +69,11 @@ const handleToggleCard = (
 
 const handleCustomCardUsage = (
   card: Item,
-  db: any,
+  db: pg.Client,
   interaction: CommandInteraction,
   client: Client
 ) => {
-  if (!(card instanceof Item))
-    throw Error("Invalid Argument: Must be an instance of Item.");
+  if (!(card instanceof Item)) throw Error("Invalid Argument: Must be an instance of Item.");
 
   let cardId = card.id;
   let returnValue;
@@ -132,13 +130,8 @@ const handleCustomCardUsage = (
   return returnValue;
 };
 
-const handlePostTaskCard = (
-  card: Item,
-  db: any,
-  interaction: CommandInteraction
-) => {
-  if (!(card instanceof Item))
-    throw Error("Invalid Argument: Must be an instance of Item.");
+const handlePostTaskCard = (card: Item, db: pg.Client, interaction: CommandInteraction) => {
+  if (!(card instanceof Item)) throw Error("Invalid Argument: Must be an instance of Item.");
 
   let cardId = card.id;
   switch (cardId) {
@@ -163,22 +156,20 @@ const handlePostTaskCard = (
 };
 
 const getInventoryAsObject = (userId: string) => {
-  const currentInventories = JSON.parse(
-    fs.readFileSync("./data/inventories.json", "utf-8")
-  );
+  const currentInventories = JSON.parse(fs.readFileSync("./data/inventories.json", "utf-8"));
 
-  let userObject = currentInventories.find((e: any) => e.userId === userId);
-  return userObject
-    ? new Inventory().fromJSON(userObject.inventory)
-    : new Inventory();
+  let userObject = currentInventories.find(
+    (e: Inventory & { userId: string }) => e.userId === userId
+  );
+  return userObject ? new Inventory().fromJSON(userObject.inventory) : new Inventory();
 };
 
-const updateInventoryRef = (inv: Inventory, user: any) => {
-  const currentInventories = JSON.parse(
-    fs.readFileSync("./data/inventories.json", "utf-8")
-  );
+const updateInventoryRef = (inv: Inventory, user: User) => {
+  const currentInventories = JSON.parse(fs.readFileSync("./data/inventories.json", "utf-8"));
 
-  let index = currentInventories.findIndex((e: any) => e.userId === user.id);
+  let index = currentInventories.findIndex(
+    (e: Inventory & { userId: string }) => e.userId === user.id
+  );
   if (index < 0) {
     currentInventories.push({
       userId: user.id,
@@ -188,32 +179,21 @@ const updateInventoryRef = (inv: Inventory, user: any) => {
   } else {
     currentInventories[index].inventory = inv;
   }
-  fs.writeFileSync(
-    "./data/inventories.json",
-    JSON.stringify(currentInventories, null, "\t")
-  );
+
+  fs.writeFileSync("./data/inventories.json", JSON.stringify(currentInventories, null, "\t"));
 };
 
-const updateTotalPacksOpened = async (
-  user: any,
-  db: any,
-  amount: number = 1
-) => {
+const updateTotalPacksOpened = async (user: User, db: pg.Client, amount: number = 1) => {
   const exp = 20;
 
-  const currentStats = await db.query(`SELECT * FROM BazaarStats WHERE id=$1`, [
-    user.id,
-  ]);
+  const currentStats = await db.query(`SELECT * FROM BazaarStats WHERE id=$1`, [user.id]);
 
   if (currentStats.rows.length > 0) {
     const stats = JSON.parse(currentStats.rows[0].stats);
     let newTotal = parseInt(stats.packs_opened ?? 0) + amount;
     stats.packs_opened = newTotal;
 
-    db.query(`UPDATE BazaarStats SET stats=$1 WHERE id=$2`, [
-      JSON.stringify(stats),
-      user.id,
-    ]);
+    db.query(`UPDATE BazaarStats SET stats=$1 WHERE id=$2`, [JSON.stringify(stats), user.id]);
   } else {
     db.query(`INSERT INTO BazaarStats VALUES($1,$2,$3,$4,$5)`, [
       user.id,
@@ -227,13 +207,11 @@ const updateTotalPacksOpened = async (
 
 const updateTotalEXP = async (
   interaction: CommandInteraction,
-  db: any,
+  db: pg.Client,
   amount: number,
   value: number = 100
 ) => {
-  const currentEXP = await db.query(`SELECT * FROM BazaarStats WHERE id=$1`, [
-    interaction.user.id,
-  ]);
+  const currentEXP = await db.query(`SELECT * FROM BazaarStats WHERE id=$1`, [interaction.user.id]);
 
   if (currentEXP.rows.length > 0) {
     let formerLevel = getLevelData(currentEXP.rows[0].exp).level;
@@ -253,10 +231,7 @@ const updateTotalEXP = async (
     }
 
     let newTotal = parseInt(currentEXP.rows[0].exp) + amount * value;
-    db.query(`UPDATE BazaarStats SET exp=$1 WHERE id=$2`, [
-      newTotal,
-      interaction.user.id,
-    ]);
+    db.query(`UPDATE BazaarStats SET exp=$1 WHERE id=$2`, [newTotal, interaction.user.id]);
   } else {
     if (getLevelData(value).level >= 1)
       interaction.channel?.send({
@@ -267,9 +242,7 @@ const updateTotalEXP = async (
             .setDescription(
               `${emoteApprove} ${separator} ${
                 interaction.user
-              } just leveled up! They are now level ${
-                getLevelData(value).level
-              }`
+              } just leveled up! They are now level ${getLevelData(value).level}`
             ),
         ],
       });
@@ -284,21 +257,14 @@ const updateTotalEXP = async (
   }
 };
 
-const addScrap = async (user: any, db: any, amount: number) => {
-  const currentScrap = await db.query(`SELECT * FROM currency WHERE id=$1`, [
-    user.id,
-  ]);
+const addScrap = async (user: User, db: pg.Client, amount: number) => {
+  const currentScrap = await db.query(`SELECT * FROM currency WHERE id=$1`, [user.id]);
 
   if (currentScrap.rows.length > 0) {
     let newTotal = parseInt(currentScrap.rows[0].scrap) + amount;
     db.query(`UPDATE currency SET scrap=$1 WHERE id=$2`, [newTotal, user.id]);
   } else {
-    db.query(`INSERT INTO currency VALUES($1,$2,$3,$4)`, [
-      user.id,
-      0,
-      0,
-      amount,
-    ]);
+    db.query(`INSERT INTO currency VALUES($1,$2,$3,$4)`, [user.id, 0, 0, amount]);
   }
 };
 
@@ -350,19 +316,12 @@ const bz_getHealth = (inv: Inventory, level: number) => {
     common: uniqueItems.common.reduce((acc, item) => acc + item.amount, 0) * 3,
     rare: uniqueItems.rare.reduce((acc, item) => acc + item.amount, 0) * 15,
     epic: uniqueItems.epic.reduce((acc, item) => acc + item.amount, 0) * 25,
-    legendary:
-      uniqueItems.legendary.reduce((acc, item) => acc + item.amount, 0) * 50,
-    celestial:
-      uniqueItems.celestial.reduce((acc, item) => acc + item.amount, 0) * 250,
+    legendary: uniqueItems.legendary.reduce((acc, item) => acc + item.amount, 0) * 50,
+    celestial: uniqueItems.celestial.reduce((acc, item) => acc + item.amount, 0) * 250,
   };
 
   return (
-    totals.common +
-    totals.rare +
-    totals.epic +
-    totals.legendary +
-    totals.celestial +
-    level * 25
+    totals.common + totals.rare + totals.epic + totals.legendary + totals.celestial + level * 25
   );
 };
 
@@ -393,30 +352,100 @@ const bz_getDamage = (inv: Inventory, level: number) => {
     celestial: uniqueItems.celestial.length * 50,
   };
 
-  const totalDamage =
-    Object.values(totals).reduce((acc, val) => acc + val, 0) + level * 2;
+  const totalDamage = Object.values(totals).reduce((acc, val) => acc + val, 0) + level * 2;
   const rng = Math.random() * 2 - 1;
   const tenPercent = totalDamage * 0.1;
 
   return Math.round(totalDamage + tenPercent * rng);
 };
 
-const userUsedPostCard = async (user: any, db: any) => {
-  let currentTask = await db.query(`SELECT * FROM Bazaar WHERE active='true'`);
-  if (currentTask.rows.length < 1) return false;
-  else currentTask = currentTask.rows[0];
+const updatePVPScore = async (user: User, targetUser: User, db: pg.Client): Promise<number> => {
+  let ownExp, targetExp;
+  const query = `SELECT * FROM BazaarStats WHERE id=$1`;
 
-  let userList = JSON.parse(currentTask.participants);
-  return userList.find((e: any) => e.id === user.id) !== undefined;
+  const ownExpData = await db.query(query, [user.id]);
+  if (ownExpData.rows.length === 0) ownExp = { exp: 0 };
+  else ownExp = ownExpData.rows[0];
+
+  const targetExpData = await db.query(query, [targetUser.id]);
+  if (targetExpData.rows.length === 0) targetExp = { exp: 0 };
+  else targetExp = targetExpData.rows[0];
+
+  const ownLevel = getLevelData(ownExp.exp).level;
+  const targetLevel = getLevelData(targetExp.exp).level;
+
+  let ownScore: { [k: string]: any } = await db.query(
+    `SELECT weekly,monthly,total FROM pvpdata WHERE id=$1`,
+    [user.id]
+  );
+  if (ownScore.rows.length > 0) ownScore = ownScore.rows[0];
+  else
+    ownScore = {
+      weekly: 0,
+      monthly: 0,
+      total: 0,
+    };
+
+  const points = Math.round(
+    (targetLevel / ownLevel < 1 ? 1 : ownLevel) * targetLevel + targetLevel * 0.1
+  );
+
+  for (const key of Object.keys(ownScore)) {
+    ownScore[key] += points;
+  }
+
+  db.query(
+    `INSERT INTO pvpdata VALUES ($1, $2, $3, $4, $5, $6, $7, $8) ON CONFLICT(id) DO UPDATE SET weekly=$2, monthly=$3, total=$4`,
+    [user.id, ...Object.values(ownScore), 0, 0, "false", "false"]
+  );
+
+  return points;
 };
 
-const updatePostCardUsed = async (card: Item, db: any, user: any) => {
-  let currentTask = await db.query(`SELECT * FROM Bazaar WHERE active='true'`);
-  if (currentTask.rows.length < 1) return;
-  else currentTask = currentTask.rows[0];
+const getWeeklyRewardPlacement = async (user: User): Promise<number | null> => {
+  let placement: number;
+  const db = Database.init();
+
+  const { rows } = await db.query(
+    `SELECT id,past_weekly FROM pvpdata ORDER BY past_weekly DESC LIMIT 10`
+  );
+
+  placement = rows.findIndex((e) => e.id === user.id && e.past_weekly > 0);
+
+  return placement < 0 ? null : placement;
+};
+
+const getMonthlyRewardPlacement = async (user: User): Promise<number | null> => {
+  const db = Database.init();
+
+  const { rows } = await db.query(
+    `SELECT id,past_monthly FROM pvpdata ORDER BY past_monthly DESC LIMIT 10`
+  );
+  let placement: number = rows.findIndex((e) => e.id === user.id && e.past_monthly > 0);
+
+  return placement < 0 ? null : placement;
+};
+
+const userUsedPostCard = async (user: User, db: pg.Client) => {
+  let currentTask: { participants: string };
+
+  let { rows } = await db.query(`SELECT * FROM Bazaar WHERE active='true'`);
+  if (rows.length < 1) return false;
+  else currentTask = rows[0];
 
   let userList = JSON.parse(currentTask.participants);
-  if (userList.find((e: any) => e.id === user.id)) return;
+  return userList.find((e: { id: string }) => e.id === user.id) !== undefined;
+};
+
+const updatePostCardUsed = async (card: Item, db: pg.Client, user: User) => {
+  let currentTask: { participants: string; id: number };
+
+  let { rows } = await db.query(`SELECT * FROM Bazaar WHERE active='true'`);
+  if (rows.length < 1) return false;
+  else currentTask = rows[0];
+
+  let userList = JSON.parse(currentTask.participants);
+  if (userList.find((e: { id: string }) => e.id === user.id)) return;
 
   const newUserObject = {
     id: user.id,
@@ -430,10 +459,8 @@ const updatePostCardUsed = async (card: Item, db: any, user: any) => {
   ]);
 };
 
-const updatePVPStats = async (user: any, db: any, result: number) => {
-  const currentStats = await db.query(`SELECT * FROM BazaarStats WHERE id=$1`, [
-    user.id,
-  ]);
+const updatePVPStats = async (user: User, db: pg.Client, result: number) => {
+  const currentStats = await db.query(`SELECT * FROM BazaarStats WHERE id=$1`, [user.id]);
 
   if (currentStats.rows.length > 0) {
     let stats = JSON.parse(currentStats.rows[0].stats); // fill the obect with the default values in case user has not participated in pvp yet
@@ -445,10 +472,7 @@ const updatePVPStats = async (user: any, db: any, result: number) => {
     if (result > 0) stats.pvp_stats.wins = stats.pvp_stats.wins + result;
     else stats.pvp_stats.losses = stats.pvp_stats.losses + Math.abs(result);
 
-    db.query(`UPDATE BazaarStats SET stats=$1 WHERE id=$2`, [
-      JSON.stringify(stats),
-      user.id,
-    ]);
+    db.query(`UPDATE BazaarStats SET stats=$1 WHERE id=$2`, [JSON.stringify(stats), user.id]);
   } else {
     let stats = {
       pvp_stats: {
@@ -467,20 +491,15 @@ const updatePVPStats = async (user: any, db: any, result: number) => {
   }
 };
 
-const updateTasksWon = async (user: any, db: any) => {
-  const currentStats = await db.query(`SELECT * FROM BazaarStats WHERE id=$1`, [
-    user.id,
-  ]);
+const updateTasksWon = async (user: User, db: pg.Client) => {
+  const currentStats = await db.query(`SELECT * FROM BazaarStats WHERE id=$1`, [user.id]);
 
   if (currentStats.rows.length > 0) {
     const stats = JSON.parse(currentStats.rows[0].stats);
     let newTotal = parseInt(stats.tasks_won ?? 0) + 1;
     stats.tasks_won = newTotal;
 
-    db.query(`UPDATE BazaarStats SET stats=$1 WHERE id=$2`, [
-      JSON.stringify(stats),
-      user.id,
-    ]);
+    db.query(`UPDATE BazaarStats SET stats=$1 WHERE id=$2`, [JSON.stringify(stats), user.id]);
   } else {
     db.query(`INSERT INTO BazaarStats VALUES($1,$2,$3,$4,$5)`, [
       user.id,
@@ -492,24 +511,15 @@ const updateTasksWon = async (user: any, db: any) => {
   }
 };
 
-const updateCardsLiquidated = async (
-  user: any,
-  db: any,
-  amount: number = 1
-) => {
-  const currentStats = await db.query(`SELECT * FROM BazaarStats WHERE id=$1`, [
-    user.id,
-  ]);
+const updateCardsLiquidated = async (user: User, db: pg.Client, amount: number = 1) => {
+  const currentStats = await db.query(`SELECT * FROM BazaarStats WHERE id=$1`, [user.id]);
 
   if (currentStats.rows.length > 0) {
     const stats = JSON.parse(currentStats.rows[0].stats);
     let newTotal = parseInt(stats.cards_liquidated ?? 0) + amount;
     stats.cards_liquidated = newTotal;
 
-    db.query(`UPDATE BazaarStats SET stats=$1 WHERE id=$2`, [
-      JSON.stringify(stats),
-      user.id,
-    ]);
+    db.query(`UPDATE BazaarStats SET stats=$1 WHERE id=$2`, [JSON.stringify(stats), user.id]);
   } else {
     db.query(`INSERT INTO BazaarStats VALUES($1,$2,$3,$4,$5)`, [
       user.id,
@@ -532,9 +542,7 @@ const getModalInput = (
       .setLabel(options.label ?? "User Input")
       .setStyle(TextInputStyle.Short);
 
-    const actionRow = new ActionRowBuilder<TextInputBuilder>().addComponents(
-      defaultField
-    );
+    const actionRow = new ActionRowBuilder<TextInputBuilder>().addComponents(defaultField);
 
     const modal = new ModalBuilder()
       .setCustomId("default_input_modal")
@@ -543,35 +551,29 @@ const getModalInput = (
 
     interaction.showModal(modal);
 
-    const listener = async (modalInteraction: any) => {
+    const listener = async (modalInteraction: ModalSubmitInteraction) => {
       if (!modalInteraction.isModalSubmit()) return;
       if (modalInteraction.customId !== "default_input_modal") return;
 
-      const input = modalInteraction.fields.getTextInputValue(
-        "default_input_field"
-      );
+      const input = modalInteraction.fields.getTextInputValue("default_input_field");
 
-      client.off("interactionCreate", listener);
+      client.off("interactionCreate", listener as any);
 
       // Resolve the promise with the input value
-      resolve({ input, interaction: modalInteraction });
+      resolve({ input, interaction: modalInteraction } as any);
     };
 
-    client.on("interactionCreate", listener);
+    client.on("interactionCreate", listener as any);
     setTimeout(() => {
       try {
-        client.off("interactionCreate", listener);
+        client.off("interactionCreate", listener as any);
       } catch {}
       reject(new Error("Modal input timed out"));
     }, 60_000);
   });
 };
 
-const updateItemProperties = (
-  inventories: Array<any>,
-  item: ItemType,
-  { global = true }
-) => {
+const updateItemProperties = (inventories: Array<any>, item: ItemType, { global = true }) => {
   if (!global) return;
 
   for (const entry of inventories) {
@@ -586,8 +588,7 @@ const updateItemProperties = (
       inv.activeItems[activeIndex].amount = oldItem.amount;
       if (typeof newItem.cardType !== "string") {
         newItem.cardType.cooldown.current =
-          oldItem.cardType.cooldown?.current ??
-          newItem.cardType.cooldown.current;
+          oldItem.cardType.cooldown?.current ?? newItem.cardType.cooldown.current;
       }
 
       if (
@@ -596,11 +597,10 @@ const updateItemProperties = (
       ) {
         inv.moveToInventory(inv.activeItems[activeIndex]);
 
-        if (typeof newItem.cardType !== "string")
-          newItem.cardType.cooldown.current = 0;
+        if (typeof newItem.cardType !== "string") newItem.cardType.cooldown.current = 0;
       }
 
-      updateInventoryRef(inv, { id: entry.userId, username: entry.userName });
+      updateInventoryRef(inv, { id: entry.userId, username: entry.userName } as User);
     }
 
     let generalIndex = inv.getItems().findIndex((e) => e.id === item.id);
@@ -612,23 +612,17 @@ const updateItemProperties = (
       inv.list[generalIndex].amount = oldItem.amount;
       if (typeof newItem.cardType !== "string") {
         newItem.cardType.cooldown.current =
-          oldItem.cardType.cooldown?.current ??
-          newItem.cardType.cooldown.current;
+          oldItem.cardType.cooldown?.current ?? newItem.cardType.cooldown.current;
       }
 
-      if (inv.list[generalIndex].cardType === "passive")
-        inv.setActiveItem(inv.list[generalIndex]);
+      if (inv.list[generalIndex].cardType === "passive") inv.setActiveItem(inv.list[generalIndex]);
 
-      updateInventoryRef(inv, { id: entry.userId, username: entry.userName });
+      updateInventoryRef(inv, { id: entry.userId, username: entry.userName } as User);
     }
   }
 };
 
-const updatePackProperties = (
-  inventories: Array<any>,
-  pack: Pack,
-  { global = true }
-) => {
+const updatePackProperties = (inventories: Array<any>, pack: Pack, { global = true }) => {
   if (!global) return;
 
   for (const entry of inventories) {
@@ -642,7 +636,7 @@ const updatePackProperties = (
 
       inv.packs[index].amount = oldPack.amount;
 
-      updateInventoryRef(inv, { id: entry.userId, username: entry.userName });
+      updateInventoryRef(inv, { id: entry.userId, username: entry.userName } as User);
     }
   }
 };
@@ -650,7 +644,7 @@ const updatePackProperties = (
 const confirm = async (
   interaction: CommandInteraction | ButtonInteraction,
   client: Client,
-  { ephemeral = false, message = "", embeds = [] }: any
+  { ephemeral = false, content = "", embeds = [] }: InteractionReplyOptions
 ) => {
   const confirmationRow: any = new ActionRowBuilder().addComponents(
     new ButtonBuilder()
@@ -664,17 +658,17 @@ const confirm = async (
   );
 
   const interactionMessage = interaction.replied
-    ? message.length === 0
+    ? content.length === 0
       ? await interaction.editReply({
           embeds: embeds,
           components: [confirmationRow],
         })
       : await interaction.editReply({
-          content: message,
+          content: content,
           embeds: embeds,
           components: [confirmationRow],
         })
-    : message.length === 0
+    : content.length === 0
     ? await interaction.reply({
         embeds: embeds,
         ephemeral: ephemeral,
@@ -682,7 +676,7 @@ const confirm = async (
         fetchReply: true,
       })
     : await interaction.reply({
-        content: message,
+        content: content,
         embeds: embeds,
         ephemeral: ephemeral,
         components: [confirmationRow],
@@ -795,6 +789,9 @@ export {
   getProgressBar,
   bz_getHealth,
   bz_getDamage,
+  updatePVPScore,
+  getWeeklyRewardPlacement,
+  getMonthlyRewardPlacement,
   userUsedPostCard,
   updatePostCardUsed,
   updatePVPStats,
