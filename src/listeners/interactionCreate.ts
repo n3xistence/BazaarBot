@@ -11,7 +11,8 @@ import { Modals } from "../modals/Modals";
 import Logger from "../ext/Logger";
 import * as Helper from "../ext/Helper";
 
-let users: Array<{ userId: string; stamp: number }> = [];
+let userCooldowns: Array<{ userId: string; stamp: number }> = [];
+const COOLDOWN_LENGTH: number = 5_000; // ms
 
 export default (client: Client): void => {
   client.on("interactionCreate", async (interaction: Interaction) => {
@@ -53,14 +54,15 @@ const handleSlashCommand = async (
     if (!slashCommand)
       return interaction.reply({ content: "An error has occurred", ephemeral: true });
 
-    const user = users.find((e) => e.userId === interaction.user.id);
-    if (!user) users.push({ userId: interaction.user.id, stamp: Helper.getUNIXStamp(true) });
+    const user = userCooldowns.find((e) => e.userId === interaction.user.id);
+    if (!user)
+      userCooldowns.push({ userId: interaction.user.id, stamp: Helper.getUNIXStamp(true) });
     else {
       const diff = Helper.getUNIXStamp(true) - user.stamp;
 
-      if (diff < 5000)
+      if (diff < COOLDOWN_LENGTH)
         return interaction.reply({
-          content: `You must wait another **${((5000 - diff) / 1000).toFixed(2)}s**`,
+          content: `You must wait another **${((COOLDOWN_LENGTH - diff) / 1000).toFixed(2)}s**`,
           ephemeral: true,
         });
     }
@@ -91,5 +93,5 @@ const handleModalSubmit = async (
 
 // dump the list every 5 minutes to reduce lookup overhead
 setInterval(() => {
-  users = [];
+  userCooldowns = [];
 }, 300_000);

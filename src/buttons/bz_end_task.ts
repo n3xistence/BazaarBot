@@ -76,7 +76,7 @@ const handleTaskEnd = async (db: any, interaction: any, client: Client) => {
     }.\nAre you sure you would like to end the task regardless?`;
 
     const res = await helper.confirm(interaction, client, {
-      message: notice,
+      content: notice,
       ephemeral: true,
     });
 

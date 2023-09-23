@@ -1,9 +1,49 @@
-import { Client, CommandInteraction, EmbedBuilder } from "discord.js";
+import { Client, CommandInteraction, EmbedBuilder, User } from "discord.js";
 import * as helper from "../ext/Helper";
 import { Command } from "./ICommand";
 import Item from "../Classes/Item";
 import * as Database from "../Database";
 import fs from "node:fs";
+import pg from "pg";
+
+const weeklyRewards: Array<number> = [15, 12, 9, 6, 3];
+const claimWeekly = async (user: User): Promise<{ reward: number; placement: number } | null> => {
+  const placement = await helper.getWeeklyRewardPlacement(user);
+  if (placement === null) return null;
+
+  const res: { reward: number; placement: number } = {
+    placement,
+    reward: placement >= 0 && placement < weeklyRewards.length ? weeklyRewards[placement] : 0,
+  };
+
+  return res;
+};
+
+const monthlyRewards: Array<number> = [50, 40, 30, 20, 10];
+const claimMonthly = async (user: User): Promise<{ reward: number; placement: number } | null> => {
+  const placement = await helper.getMonthlyRewardPlacement(user);
+  if (placement === null) return null;
+
+  const res: { reward: number; placement: number } = {
+    placement,
+    reward: placement >= 0 && placement < monthlyRewards.length ? monthlyRewards[placement] : 0,
+  };
+
+  return res;
+};
+
+const getPVPClaimedState = async (
+  user: User,
+  db: pg.Client
+): Promise<{ weekly: boolean; monthly: boolean }> => {
+  const { rows } = await db.query(
+    `SELECT weekly_claimed,monthly_claimed FROM pvpdata WHERE id=$1`,
+    [user.id]
+  );
+  if (rows.length === 0) return { weekly: false, monthly: false };
+
+  return { weekly: rows[0].weekly_claimed, monthly: rows[0].monthly_claimed };
+};
 
 export const daily: Command = {
   name: "daily",
@@ -81,26 +121,73 @@ export const daily: Command = {
       );
     }
 
-    if (cardStrings.length === 0)
+    const errorEmbed = new EmbedBuilder()
+      .setTitle("No Daily Left to Claim")
+      .setColor("Red")
+      .setDescription(
+        `${helper.emoteDeny} ${helper.separator} You have already claimed all your daily rewards or have none of the cards.`
+      );
+
+    const pvpClaimedState = await getPVPClaimedState(interaction.user, db);
+
+    if (cardStrings.length === 0 && pvpClaimedState.monthly && pvpClaimedState.weekly)
       return interaction.reply({
-        embeds: [
-          new EmbedBuilder()
-            .setTitle("No Daily Left to Claim")
-            .setColor("Red")
-            .setDescription(
-              `${helper.emoteDeny} ${helper.separator} You have already claimed all your daily rewards or have none of the cards.`
-            ),
-        ],
+        embeds: [errorEmbed],
         ephemeral: true,
       });
-    else
+    else {
+      const embed = new EmbedBuilder().setTitle("Daily Claimed").setColor("Green");
+
+      if (cardStrings.length > 0)
+        embed.setDescription(`Cards Used:\n\n>>> ${cardStrings.join("\n")}`);
+
+      if (!pvpClaimedState.weekly) {
+        const res = await claimWeekly(interaction.user);
+        if (res) {
+          db.query(
+            `INSERT INTO currency VALUES($1,$2,$3,$4) ON CONFLICT(id) DO UPDATE SET gems=currency.gems+$3`,
+            [interaction.user.id, 0, res.reward, 0]
+          );
+          db.query(
+            `INSERT INTO pvpdata VALUES($1,$2,$3,$4,$5,$6,$7,$8) ON CONFLICT(id) DO UPDATE SET weekly_claimed=$7`,
+            [interaction.user.id, 0, 0, 0, 0, 0, "true", "false"]
+          );
+
+          embed.addFields({
+            name: "Weekly Claimed",
+            value: `> #${res.placement + 1} ${helper.separator} ${helper.emoteGems} ${
+              res.reward
+            } gems`,
+          });
+        }
+      }
+      if (!pvpClaimedState.monthly) {
+        const res = await claimMonthly(interaction.user);
+        if (res) {
+          db.query(
+            `INSERT INTO currency VALUES($1,$2,$3,$4) ON CONFLICT(id) DO UPDATE SET gems=currency.gems+$3`,
+            [interaction.user.id, 0, res.reward, 0]
+          );
+          db.query(
+            `INSERT INTO pvpdata VALUES($1,$2,$3,$4,$5,$6,$7,$8) ON CONFLICT(id) DO UPDATE SET monthly_claimed=$8`,
+            [interaction.user.id, 0, 0, 0, 0, 0, "false", "true"]
+          );
+
+          embed.addFields({
+            name: "Monthly Claimed",
+            value: `> #${res.placement + 1} ${helper.separator} ${helper.emoteGems} ${
+              res.reward
+            } gems`,
+          });
+        }
+      }
+
+      if (!embed.data.description && !embed.data.fields)
+        return interaction.reply({ embeds: [errorEmbed], ephemeral: true });
+
       return interaction.reply({
-        embeds: [
-          new EmbedBuilder()
-            .setTitle("Daily Claimed")
-            .setColor("Green")
-            .setDescription(`Cards Used:\n\n>>> ${cardStrings.join("\n")}`),
-        ],
+        embeds: [embed],
       });
+    }
   },
 };

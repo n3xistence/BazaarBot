@@ -76,33 +76,19 @@ export const attack: Command = {
   async execute(client: Client, interaction: CommandInteraction) {
     const db = Database.init();
     let targetUser = interaction.options.getUser("user");
-    if (!targetUser) return;
-    //   || targetUser.id === interaction.user.id)
-    //   return interaction.reply({
-    //     content: "Please mention a valid user.",
-    //     ephemeral: true,
-    //   });
-    // if (targetUser.bot)
-    //   return interaction.reply({
-    //     content: "This user is a bot and cannot participate in PVP.",
-    //     ephemeral: true,
-    //   });
+    if (!targetUser || targetUser.id === interaction.user.id)
+      return interaction.reply({
+        content: "Please mention a valid user.",
+        ephemeral: true,
+      });
+    if (targetUser.bot)
+      return interaction.reply({
+        content: "This user is a bot and cannot participate in PVP.",
+        ephemeral: true,
+      });
 
     const ownInv = helper.getInventoryAsObject(interaction.user.id);
     const targetInv = helper.getInventoryAsObject(targetUser.id);
-
-    const selfHasCard = ownInv.getActiveItems().find((e) => e.id === 40);
-    const targetHasCard = targetInv.getActiveItems().find((e) => e.id === 40);
-    // if (!selfHasCard)
-    //   return interaction.reply({
-    //     content: "You have not activated the card `Colosseum` and cannot participate in PVP.",
-    //     ephemeral: true,
-    //   });
-    // if (!targetHasCard)
-    //   return interaction.reply({
-    //     content: `${targetUser} has not activated the card \`Colosseum\` and cannot participate in PVP.`,
-    //     ephemeral: true,
-    //   });
 
     const selfCooldownData = await db.query(`SELECT * FROM BazaarStats WHERE id=$1`, [
       interaction.user.id,
@@ -228,28 +214,14 @@ export const attack: Command = {
     });
 
     if (winner.id === interaction.user.id) {
+      const hasColosseum = ownInv.getActiveItems().find((e) => e.id === 40);
       const spoils = {
-        exp: Math.round(Math.log10(targetLevel / 2 + 1) * 5),
-        gems: Math.min(targetLevel - ownLevel, 5),
+        exp: Math.round(Math.log10(targetLevel / 2 + 1) * 5 * (hasColosseum ? 1.5 : 1)),
       };
 
       helper.updateTotalEXP(interaction, db, 1, spoils.exp);
-      if (spoils.gems < 0) spoils.gems = 0;
 
-      let query = `SELECT * FROM currency WHERE id=$1`;
-      const currentPoints = await db.query(query, [interaction.user.id]);
-
-      if (currentPoints.rows.length > 0) {
-        let newTotal = currentPoints.rows[0].gems + spoils.gems;
-
-        const query = `UPDATE currency SET gems=$1 WHERE id=$2`;
-        db.query(query, [newTotal, interaction.user.id]);
-      } else {
-        const query = `INSERT INTO currency VALUES($1,$2,$3,$4)`;
-        db.query(query, [interaction.user.id, 0, spoils.gems, 0]);
-      }
-
-      query = `SELECT * FROM BazaarStats WHERE id=$1`;
+      const query = `SELECT * FROM BazaarStats WHERE id=$1`;
       const targetCooldown = await db.query(query, [targetUser.id]);
 
       if (targetCooldown.rows.length > 0) {
@@ -277,14 +249,14 @@ export const attack: Command = {
 
       helper.updatePVPStats(interaction.user, db, 1);
       helper.updatePVPStats(targetUser, db, -1);
-      helper.updatePVPScore(interaction.user, targetUser, db);
+      const points = await helper.updatePVPScore(interaction.user, targetUser, db);
 
       interaction.channel?.send({
         embeds: [
           new EmbedBuilder()
             .setColor("DarkPurple")
             .setDescription(
-              `${winner} has gained ${spoils.exp} exp ${helper.emoteLevels} and ${spoils.gems} gems ${helper.emoteGems} from defeating ${loser}.`
+              `${winner} has gained ${points} points ${helper.emoteBazaar_PVP} and ${spoils.exp} exp ${helper.emoteLevels} from defeating ${loser}.`
             ),
         ],
       });

@@ -2,6 +2,7 @@ import Inventory from "../Classes/Inventory";
 import Pack from "../Classes/Pack";
 import * as Database from "../Database";
 import { ItemType } from "../types";
+import pg from "pg";
 import Item from "../Classes/Item";
 import * as ch from "../Classes/CardHandler";
 import { createCanvas, loadImage } from "@napi-rs/canvas";
@@ -14,9 +15,12 @@ import {
   Client,
   CommandInteraction,
   EmbedBuilder,
+  InteractionReplyOptions,
   ModalBuilder,
+  ModalSubmitInteraction,
   TextInputBuilder,
   TextInputStyle,
+  User,
 } from "discord.js";
 import fs from "node:fs";
 
@@ -48,7 +52,7 @@ const getUNIXStamp = (ms: boolean = false) => Math.floor(new Date().getTime() / 
 
 const randomPick = (array: Array<any>): any => array[Math.floor(Math.random() * array.length)];
 
-const handleToggleCard = (card: Item, db: any, interaction: CommandInteraction) => {
+const handleToggleCard = (card: Item, db: pg.Client, interaction: CommandInteraction) => {
   if (!(card instanceof Item)) throw Error("Invalid Argument: Must be an instance of Item.");
 
   let returnValue;
@@ -65,7 +69,7 @@ const handleToggleCard = (card: Item, db: any, interaction: CommandInteraction) 
 
 const handleCustomCardUsage = (
   card: Item,
-  db: any,
+  db: pg.Client,
   interaction: CommandInteraction,
   client: Client
 ) => {
@@ -126,7 +130,7 @@ const handleCustomCardUsage = (
   return returnValue;
 };
 
-const handlePostTaskCard = (card: Item, db: any, interaction: CommandInteraction) => {
+const handlePostTaskCard = (card: Item, db: pg.Client, interaction: CommandInteraction) => {
   if (!(card instanceof Item)) throw Error("Invalid Argument: Must be an instance of Item.");
 
   let cardId = card.id;
@@ -154,14 +158,18 @@ const handlePostTaskCard = (card: Item, db: any, interaction: CommandInteraction
 const getInventoryAsObject = (userId: string) => {
   const currentInventories = JSON.parse(fs.readFileSync("./data/inventories.json", "utf-8"));
 
-  let userObject = currentInventories.find((e: any) => e.userId === userId);
+  let userObject = currentInventories.find(
+    (e: Inventory & { userId: string }) => e.userId === userId
+  );
   return userObject ? new Inventory().fromJSON(userObject.inventory) : new Inventory();
 };
 
-const updateInventoryRef = (inv: Inventory, user: any) => {
+const updateInventoryRef = (inv: Inventory, user: User) => {
   const currentInventories = JSON.parse(fs.readFileSync("./data/inventories.json", "utf-8"));
 
-  let index = currentInventories.findIndex((e: any) => e.userId === user.id);
+  let index = currentInventories.findIndex(
+    (e: Inventory & { userId: string }) => e.userId === user.id
+  );
   if (index < 0) {
     currentInventories.push({
       userId: user.id,
@@ -175,7 +183,7 @@ const updateInventoryRef = (inv: Inventory, user: any) => {
   fs.writeFileSync("./data/inventories.json", JSON.stringify(currentInventories, null, "\t"));
 };
 
-const updateTotalPacksOpened = async (user: any, db: any, amount: number = 1) => {
+const updateTotalPacksOpened = async (user: User, db: pg.Client, amount: number = 1) => {
   const exp = 20;
 
   const currentStats = await db.query(`SELECT * FROM BazaarStats WHERE id=$1`, [user.id]);
@@ -199,7 +207,7 @@ const updateTotalPacksOpened = async (user: any, db: any, amount: number = 1) =>
 
 const updateTotalEXP = async (
   interaction: CommandInteraction,
-  db: any,
+  db: pg.Client,
   amount: number,
   value: number = 100
 ) => {
@@ -249,7 +257,7 @@ const updateTotalEXP = async (
   }
 };
 
-const addScrap = async (user: any, db: any, amount: number) => {
+const addScrap = async (user: User, db: pg.Client, amount: number) => {
   const currentScrap = await db.query(`SELECT * FROM currency WHERE id=$1`, [user.id]);
 
   if (currentScrap.rows.length > 0) {
@@ -351,7 +359,7 @@ const bz_getDamage = (inv: Inventory, level: number) => {
   return Math.round(totalDamage + tenPercent * rng);
 };
 
-const updatePVPScore = async (user: any, targetUser: any, db: any): Promise<void> => {
+const updatePVPScore = async (user: User, targetUser: User, db: pg.Client): Promise<number> => {
   let ownExp, targetExp;
   const query = `SELECT * FROM BazaarStats WHERE id=$1`;
 
@@ -366,14 +374,17 @@ const updatePVPScore = async (user: any, targetUser: any, db: any): Promise<void
   const ownLevel = getLevelData(ownExp.exp).level;
   const targetLevel = getLevelData(targetExp.exp).level;
 
-  let ownScore = await db.query(`SELECT weekly,monthly,total FROM pvpdata WHERE id=$1`, [user.id]);
+  let ownScore: { [k: string]: any } = await db.query(
+    `SELECT weekly,monthly,total FROM pvpdata WHERE id=$1`,
+    [user.id]
+  );
   if (ownScore.rows.length > 0) ownScore = ownScore.rows[0];
   else
     ownScore = {
       weekly: 0,
       monthly: 0,
       total: 0,
-    } as { [k: string]: any };
+    };
 
   const points = Math.round(
     (targetLevel / ownLevel < 1 ? 1 : ownLevel) * targetLevel + targetLevel * 0.1
@@ -387,35 +398,54 @@ const updatePVPScore = async (user: any, targetUser: any, db: any): Promise<void
     `INSERT INTO pvpdata VALUES ($1, $2, $3, $4, $5, $6, $7, $8) ON CONFLICT(id) DO UPDATE SET weekly=$2, monthly=$3, total=$4`,
     [user.id, ...Object.values(ownScore), 0, 0, "false", "false"]
   );
+
+  return points;
 };
 
-const getWeeklyRewardPlacement = async (user: any): Promise<number | null> => {
+const getWeeklyRewardPlacement = async (user: User): Promise<number | null> => {
   let placement: number;
   const db = Database.init();
 
-  const { rows } = await db.query(`SELECT id,weekly FROM pvpdata ORDER BY weekly DESC LIMIT 10`);
+  const { rows } = await db.query(
+    `SELECT id,past_weekly FROM pvpdata ORDER BY past_weekly DESC LIMIT 10`
+  );
 
-  placement = rows.findIndex((e) => e.id === user.id);
+  placement = rows.findIndex((e) => e.id === user.id && e.past_weekly > 0);
 
   return placement < 0 ? null : placement;
 };
 
-const userUsedPostCard = async (user: any, db: any) => {
-  let currentTask = await db.query(`SELECT * FROM Bazaar WHERE active='true'`);
-  if (currentTask.rows.length < 1) return false;
-  else currentTask = currentTask.rows[0];
+const getMonthlyRewardPlacement = async (user: User): Promise<number | null> => {
+  const db = Database.init();
 
-  let userList = JSON.parse(currentTask.participants);
-  return userList.find((e: any) => e.id === user.id) !== undefined;
+  const { rows } = await db.query(
+    `SELECT id,past_monthly FROM pvpdata ORDER BY past_monthly DESC LIMIT 10`
+  );
+  let placement: number = rows.findIndex((e) => e.id === user.id && e.past_monthly > 0);
+
+  return placement < 0 ? null : placement;
 };
 
-const updatePostCardUsed = async (card: Item, db: any, user: any) => {
-  let currentTask = await db.query(`SELECT * FROM Bazaar WHERE active='true'`);
-  if (currentTask.rows.length < 1) return;
-  else currentTask = currentTask.rows[0];
+const userUsedPostCard = async (user: User, db: pg.Client) => {
+  let currentTask: { participants: string };
+
+  let { rows } = await db.query(`SELECT * FROM Bazaar WHERE active='true'`);
+  if (rows.length < 1) return false;
+  else currentTask = rows[0];
 
   let userList = JSON.parse(currentTask.participants);
-  if (userList.find((e: any) => e.id === user.id)) return;
+  return userList.find((e: { id: string }) => e.id === user.id) !== undefined;
+};
+
+const updatePostCardUsed = async (card: Item, db: pg.Client, user: User) => {
+  let currentTask: { participants: string; id: number };
+
+  let { rows } = await db.query(`SELECT * FROM Bazaar WHERE active='true'`);
+  if (rows.length < 1) return false;
+  else currentTask = rows[0];
+
+  let userList = JSON.parse(currentTask.participants);
+  if (userList.find((e: { id: string }) => e.id === user.id)) return;
 
   const newUserObject = {
     id: user.id,
@@ -429,7 +459,7 @@ const updatePostCardUsed = async (card: Item, db: any, user: any) => {
   ]);
 };
 
-const updatePVPStats = async (user: any, db: any, result: number) => {
+const updatePVPStats = async (user: User, db: pg.Client, result: number) => {
   const currentStats = await db.query(`SELECT * FROM BazaarStats WHERE id=$1`, [user.id]);
 
   if (currentStats.rows.length > 0) {
@@ -461,7 +491,7 @@ const updatePVPStats = async (user: any, db: any, result: number) => {
   }
 };
 
-const updateTasksWon = async (user: any, db: any) => {
+const updateTasksWon = async (user: User, db: pg.Client) => {
   const currentStats = await db.query(`SELECT * FROM BazaarStats WHERE id=$1`, [user.id]);
 
   if (currentStats.rows.length > 0) {
@@ -481,7 +511,7 @@ const updateTasksWon = async (user: any, db: any) => {
   }
 };
 
-const updateCardsLiquidated = async (user: any, db: any, amount: number = 1) => {
+const updateCardsLiquidated = async (user: User, db: pg.Client, amount: number = 1) => {
   const currentStats = await db.query(`SELECT * FROM BazaarStats WHERE id=$1`, [user.id]);
 
   if (currentStats.rows.length > 0) {
@@ -521,22 +551,22 @@ const getModalInput = (
 
     interaction.showModal(modal);
 
-    const listener = async (modalInteraction: any) => {
+    const listener = async (modalInteraction: ModalSubmitInteraction) => {
       if (!modalInteraction.isModalSubmit()) return;
       if (modalInteraction.customId !== "default_input_modal") return;
 
       const input = modalInteraction.fields.getTextInputValue("default_input_field");
 
-      client.off("interactionCreate", listener);
+      client.off("interactionCreate", listener as any);
 
       // Resolve the promise with the input value
-      resolve({ input, interaction: modalInteraction });
+      resolve({ input, interaction: modalInteraction } as any);
     };
 
-    client.on("interactionCreate", listener);
+    client.on("interactionCreate", listener as any);
     setTimeout(() => {
       try {
-        client.off("interactionCreate", listener);
+        client.off("interactionCreate", listener as any);
       } catch {}
       reject(new Error("Modal input timed out"));
     }, 60_000);
@@ -570,7 +600,7 @@ const updateItemProperties = (inventories: Array<any>, item: ItemType, { global 
         if (typeof newItem.cardType !== "string") newItem.cardType.cooldown.current = 0;
       }
 
-      updateInventoryRef(inv, { id: entry.userId, username: entry.userName });
+      updateInventoryRef(inv, { id: entry.userId, username: entry.userName } as User);
     }
 
     let generalIndex = inv.getItems().findIndex((e) => e.id === item.id);
@@ -587,7 +617,7 @@ const updateItemProperties = (inventories: Array<any>, item: ItemType, { global 
 
       if (inv.list[generalIndex].cardType === "passive") inv.setActiveItem(inv.list[generalIndex]);
 
-      updateInventoryRef(inv, { id: entry.userId, username: entry.userName });
+      updateInventoryRef(inv, { id: entry.userId, username: entry.userName } as User);
     }
   }
 };
@@ -606,7 +636,7 @@ const updatePackProperties = (inventories: Array<any>, pack: Pack, { global = tr
 
       inv.packs[index].amount = oldPack.amount;
 
-      updateInventoryRef(inv, { id: entry.userId, username: entry.userName });
+      updateInventoryRef(inv, { id: entry.userId, username: entry.userName } as User);
     }
   }
 };
@@ -614,7 +644,7 @@ const updatePackProperties = (inventories: Array<any>, pack: Pack, { global = tr
 const confirm = async (
   interaction: CommandInteraction | ButtonInteraction,
   client: Client,
-  { ephemeral = false, message = "", embeds = [] }: any
+  { ephemeral = false, content = "", embeds = [] }: InteractionReplyOptions
 ) => {
   const confirmationRow: any = new ActionRowBuilder().addComponents(
     new ButtonBuilder()
@@ -628,17 +658,17 @@ const confirm = async (
   );
 
   const interactionMessage = interaction.replied
-    ? message.length === 0
+    ? content.length === 0
       ? await interaction.editReply({
           embeds: embeds,
           components: [confirmationRow],
         })
       : await interaction.editReply({
-          content: message,
+          content: content,
           embeds: embeds,
           components: [confirmationRow],
         })
-    : message.length === 0
+    : content.length === 0
     ? await interaction.reply({
         embeds: embeds,
         ephemeral: ephemeral,
@@ -646,7 +676,7 @@ const confirm = async (
         fetchReply: true,
       })
     : await interaction.reply({
-        content: message,
+        content: content,
         embeds: embeds,
         ephemeral: ephemeral,
         components: [confirmationRow],
@@ -761,6 +791,7 @@ export {
   bz_getDamage,
   updatePVPScore,
   getWeeklyRewardPlacement,
+  getMonthlyRewardPlacement,
   userUsedPostCard,
   updatePostCardUsed,
   updatePVPStats,
