@@ -387,7 +387,7 @@ const updatePVPScore = async (user: User, targetUser: User, db: pg.Client): Prom
     };
 
   const points = Math.round(
-    (targetLevel / ownLevel < 1 ? 1 : ownLevel) * targetLevel + targetLevel * 0.1
+    (targetLevel / (ownLevel < 1 ? 1 : ownLevel)) * targetLevel + targetLevel * 0.1
   );
 
   for (const key of Object.keys(ownScore)) {
