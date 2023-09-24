@@ -32,6 +32,7 @@
     "@types/decompress": "^4.2.4",
     "@types/node-cron": "^3.0.8",
     "@types/pg": "^8.10.2",
-    "typescript": "^5.2.2"
+    "typescript": "^5.2.2",
+    "bun-types": "latest"
   }
 }
