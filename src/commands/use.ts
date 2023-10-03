@@ -9,7 +9,7 @@ const getAllActiveItems = (data: any) => {
   let activeItems: Array<any> = [];
 
   for (const entry of data) {
-    let inv = entry.inventory.activeItems;
+    let inv = entry.activeItems;
 
     let items: Array<any> = [];
     for (const item of inv) {
