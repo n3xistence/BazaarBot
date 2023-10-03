@@ -979,7 +979,7 @@ const updateItemProperties = (inventories: Array<any>, item: ItemType, { global 
   if (!global) return;
 
   for (const entry of inventories) {
-    let inv = new Inventory().fromJSON(entry.inventory);
+    let inv = new Inventory().fromJSON(entry);
 
     let activeIndex = inv.getActiveItems().findIndex((e) => e.id === item.id);
     if (activeIndex >= 0) {
@@ -1030,7 +1030,7 @@ const updatePackProperties = (inventories: Array<any>, pack: Pack, { global = tr
   if (!global) return;
 
   for (const entry of inventories) {
-    let inv = new Inventory().fromJSON(entry.inventory);
+    let inv = new Inventory().fromJSON(entry);
 
     let index = inv.getPacks().findIndex((e) => e.code === pack.code);
     if (index >= 0) {
