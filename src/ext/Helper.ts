@@ -393,13 +393,15 @@ const updateInventoryRef = async (inventory: Inventory): Promise<any> => {
       ...inventory.getPacks(),
     ].map((item: any) => `('${inventory.userId}', ${item.id ?? -1}, '${item.code ?? "-1"}')`);
 
-    // Create the query
-    const query = `
+    if (tuples.length > 0) {
+      // Create the query
+      const query = `
       DELETE FROM inventory
-      WHERE (id, cid, pid) NOT IN (${tuples.join(", ")})
+      WHERE id=\'${inventory.userId}\' AND (id, cid, pid) NOT IN (${tuples.join(", ")})
     `;
 
-    allPromises.push(db.query(query));
+      allPromises.push(db.query(query));
+    }
 
     const { activeItems, list, packs } = inventory;
 
