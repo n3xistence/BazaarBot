@@ -25,8 +25,13 @@ export const stats: Command = {
     const db = Database.init();
     let generalInfo = await db.query(`SELECT * FROM BazaarStats WHERE id=$1`, [targetUser.id]);
 
-    let inv = helper.getInventoryAsObject(targetUser.id);
+    let inv = await helper.fetchInventory(targetUser.id);
     let items = [...inv.getItems(), ...inv.getActiveItems()];
+
+    let { rows: pvpScores } = await db.query(
+      `SELECT id,weekly,monthly,total FROM pvpdata WHERE id=$1`,
+      [interaction.user.id]
+    );
 
     let cards = {
       common: [...items.filter((e) => e.rarity.toLowerCase() === "common")],
@@ -54,6 +59,9 @@ export const stats: Command = {
     } wins / ${pvpStats.losses} losses (${(
       (totalFights > 0 ? pvpStats.wins / totalFights : 0) * 100
     ).toFixed(2)}% winrate)`;
+    if (pvpScores.length > 0) {
+      strStats += `\n> Weekly: ${pvpScores[0].weekly}\n> Monthly: ${pvpScores[0].monthly}\n> Total: ${pvpScores[0].total}`;
+    }
 
     let cardAmountsUnique = {
       common: cards.common.length,

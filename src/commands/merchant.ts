@@ -15,10 +15,8 @@ export const merchant: Command = {
     },
   ],
   async execute(client: Client, interaction: CommandInteraction) {
-    const inv = helper.getInventoryAsObject(interaction.user.id);
-    let hasMerchant = [...inv.getActiveItems(), ...inv.getItems()].find(
-      (e) => e.id === 22
-    );
+    const inv = await helper.fetchInventory(interaction.user.id);
+    let hasMerchant = [...inv.getActiveItems(), ...inv.getItems()].find((e) => e.id === 22);
     if (!hasMerchant)
       return interaction.reply({
         content: `You must own the card \`Merchant\` to use this command.`,

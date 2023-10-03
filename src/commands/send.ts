@@ -49,8 +49,8 @@ export const send: Command = {
         ephemeral: true,
       });
 
-    let inv = helper.getInventoryAsObject(interaction.user.id);
-    let targetInv = helper.getInventoryAsObject(targetUser.id);
+    let inv = await helper.fetchInventory(interaction.user.id);
+    let targetInv = await helper.fetchInventory(targetUser.id);
 
     let hasPermission = [...inv.getItems(), ...inv.getActiveItems()].find((e) => e.id === 21);
     if (!hasPermission)
@@ -79,11 +79,11 @@ export const send: Command = {
       });
 
     inv.removeItem(card);
-    helper.updateInventoryRef(inv, interaction.user);
+    helper.updateInventoryRef(inv);
 
     card.amount = amount;
     targetInv.addItem(card);
-    helper.updateInventoryRef(targetInv, targetUser);
+    await helper.fetchInventory(targetUser.id);
 
     return interaction.reply({
       embeds: [

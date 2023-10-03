@@ -7,8 +7,8 @@ import {
   ButtonBuilder,
   ButtonStyle,
 } from "discord.js";
-import fs from "node:fs";
 import Item from "../Classes/Item";
+import * as Database from "../Database";
 import * as helper from "../ext/Helper";
 
 const stringifyItemList = (list: Array<Item>, helper: any) => {
@@ -92,12 +92,39 @@ export const change_trade: ModalInteraction = {
       });
     }
 
-    let allTrades = JSON.parse(fs.readFileSync("./data/trades.json", "utf-8"));
-    let tradeIndex = allTrades.findIndex((e: any) => e.msg.id === interaction.message?.id);
-    let activeTrade = allTrades[tradeIndex];
+    const tradeQuery: string =
+      /*sql*/
+      `SELECT 
+        dp.code, 
+        dp.name,
 
-    const inv = helper.getInventoryAsObject(interaction.user.id);
-    let isOwner = activeTrade.owner.id === interaction.user.id;
+        tr.msg_id, 
+        tr.owner_id, 
+        tr.target_id, 
+
+        td.user_id, 
+        td.item_type, 
+        td.item_id, 
+        td.amount,
+
+        dp.name,
+        dp.code
+      FROM trade tr
+      LEFT JOIN trade_details td 
+      ON td.trade_id = tr.id  
+      WHERE tr.msg_id=\'${interaction.message?.id}\'
+      JOIN droppool dp
+      ON td.item_id = dp.pid
+    `;
+
+    const db = Database.init();
+
+    const { rows: tradeData } = await db.query(tradeQuery);
+    if (tradeData.length === 0) return;
+    const activeTrade = tradeData[0];
+
+    const inv = await helper.fetchInventory(interaction.user.id);
+    let isOwner = activeTrade.owner_id === interaction.user.id;
 
     let cards = [];
     for (const id of ids) {
@@ -113,9 +140,6 @@ export const change_trade: ModalInteraction = {
       cards.push(card);
     }
 
-    if (inputType === "set") {
-      activeTrade[isOwner ? "owner" : "target"].items = cards;
-    }
     if (inputType === "add") {
       for (const card of cards) {
         const item = activeTrade[isOwner ? "owner" : "target"].items.find(
@@ -140,13 +164,15 @@ export const change_trade: ModalInteraction = {
       }
     }
 
+    db.query(`UPDATE trade SET owner_accepted='false', target_accepted='false'`);
+
     activeTrade.owner.accepted = false;
     activeTrade.target.accepted = false;
 
     const ownerItemString = stringifyItemList(activeTrade.owner.items, helper).join("\n");
     const targetItemString = stringifyItemList(activeTrade.target.items, helper).join("\n");
 
-    fs.writeFileSync("./data/trades.json", JSON.stringify(allTrades, null, "\t"));
+    // fs.writeFileSync("./data/trades.json", JSON.stringify(allTrades, null, "\t"));
 
     let embed = new EmbedBuilder()
       .setTitle("Trade Offer")

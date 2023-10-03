@@ -21,7 +21,7 @@ export const status: Command = {
 
     let showPassive = interaction.options.getBoolean("showpassive") ?? false;
 
-    const inv = helper.getInventoryAsObject(interaction.user.id);
+    const inv = await helper.fetchInventory(interaction.user.id);
     const activeItems = inv.getActiveItems().filter((e) => showPassive || e.cardType !== "passive");
 
     let stringifiedItems = activeItems.map((item) => {

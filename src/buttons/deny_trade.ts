@@ -7,16 +7,39 @@ import {
   ButtonStyle,
 } from "discord.js";
 import fs from "fs";
+import * as Database from "../Database";
 import * as helper from "../ext/Helper";
 
 export const deny_trade: any = {
   customId: "deny_trade",
   async execute(client: Client, interaction: ButtonInteraction) {
-    let allTrades = JSON.parse(fs.readFileSync("./data/trades.json", "utf-8"));
-    let tradeIndex = allTrades.findIndex((e: any) => e.msg.id === interaction.message.id);
-    const activeTrade = allTrades[tradeIndex];
-    if (![activeTrade.owner.id, activeTrade.target.id].includes(interaction.user.id))
-      return interaction.deferUpdate();
+    const ownTradesQuery: string =
+      /*sql*/
+      `
+      SELECT 
+        dp.code, dp.name, tr.msg_link, 
+        tr.owner_id, tr.target_id, 
+        td.user_id, td.item_type, 
+        td.item_id, td.amount,
+        tr.owner_accepted,
+        tr.target_accepted,
+        tr.id
+      FROM trade tr
+      LEFT JOIN trade_details td ON td.trade_id = tr.id 
+      LEFT JOIN droppool dp ON td.item_id = dp.cid
+      WHERE tr.msg_id=\'${interaction.message.id}\'
+    `;
+    const db = Database.init();
+
+    let { rows: activeTrade } = await db.query(ownTradesQuery);
+    if (activeTrade.length === 0) return interaction.deferUpdate();
+
+    const owner = await client.users.fetch(activeTrade[0].owner_id);
+    const target = await client.users.fetch(activeTrade[0].target_id);
+
+    if (![owner.id, target.id].includes(interaction.user.id)) return interaction.deferUpdate();
+
+    const { id: tradeID } = activeTrade[0];
 
     let verifyEmbed = new EmbedBuilder()
       .setColor("Red")
@@ -41,17 +64,22 @@ export const deny_trade: any = {
 
     const listener: unknown = async (int: any) => {
       if (int.customId === "verify") {
-        let allTrades = JSON.parse(fs.readFileSync("./data/trades.json", "utf-8"));
-        let tradeIndex = allTrades.findIndex((e: any) => e.msg.id === interaction.message.id);
-        const activeTrade = allTrades[tradeIndex];
-        allTrades.splice(tradeIndex, 1);
+        db.query(
+          /* SQL */
+          `
+            DELETE FROM trade 
+            WHERE id=${tradeID}
+          `
+        );
+        db.query(
+          /* SQL */
+          `
+            DELETE FROM trade_details 
+            WHERE trade_id=${tradeID}
+          `
+        );
 
-        let isOwner = activeTrade.owner.id === interaction.user.id;
-
-        fs.writeFileSync("./data/trades.json", JSON.stringify(allTrades, null, "\t"));
-
-        let msg = await interaction.channel?.messages.fetch(activeTrade.msg.id);
-        await msg?.delete();
+        await interaction.message.delete().catch(() => {});
 
         interaction.deleteReply();
         interaction.channel?.send({
@@ -59,9 +87,7 @@ export const deny_trade: any = {
             new EmbedBuilder()
               .setColor("Red")
               .setDescription(
-                `[${helper.emoteDeny}] ${interaction.user} has just cancelled the trade with <@${
-                  activeTrade[!isOwner ? "owner" : "target"].id
-                }>`
+                `[${helper.emoteDeny}] ${interaction.user} has just cancelled the trade with <@${target.id}>`
               ),
           ],
         });

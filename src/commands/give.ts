@@ -52,7 +52,7 @@ export const give: Command = {
         ephemeral: true,
       });
 
-    const droppool = JSON.parse(fs.readFileSync("./data/droppool.json", "utf-8"));
+    const droppool = await helper.fetchDroppool();
 
     let cardCode = interaction.options.getString("code");
     let targetUser = interaction.options.getUser("user");
@@ -74,7 +74,7 @@ export const give: Command = {
         ephemeral: true,
       });
 
-    let inv = helper.getInventoryAsObject(targetUser.id);
+    let inv = await helper.fetchInventory(targetUser.id);
 
     const card = findInDroppool(droppool, cardCode ?? "");
     if (!card)
@@ -88,7 +88,7 @@ export const give: Command = {
     card.amount = amount;
     if (amount > 0) inv.addItem(card);
     else inv.removeItem(card, Math.abs(amount));
-    helper.updateInventoryRef(inv, targetUser);
+    helper.updateInventoryRef(inv);
 
     const file = fs.existsSync(`./data/cards/${card.code}.png`)
       ? new AttachmentBuilder(`./data/cards/${card.code}.png`)

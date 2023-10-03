@@ -1,11 +1,11 @@
 import Item from "../Classes/Item";
 import { AttachmentBuilder, Client, CommandInteraction } from "discord.js";
-import fs from "node:fs";
 import * as Database from "../Database";
 import { createCanvas, loadImage } from "@napi-rs/canvas";
 import * as helper from "../ext/Helper";
 import { Command } from "./ICommand";
 import CommandOptions from "../enums/CommandOptions";
+import Pack from "../Classes/Pack";
 
 const getRewardImage = async (rewards: Array<Item>) => {
   const canvas = createCanvas(rewards.length * 1000, 1080);
@@ -42,9 +42,9 @@ export const open: Command = {
     const expAmount = 30;
 
     const db = Database.init();
-    const droppool = JSON.parse(fs.readFileSync("./data/droppool.json", "utf-8"));
+    const droppool = await helper.fetchDroppool();
     let packCode = interaction.options.getString("code");
-    let inv = helper.getInventoryAsObject(interaction.user.id);
+    let inv = await helper.fetchInventory(interaction.user.id);
     let invIndex = inv.getPacks().findIndex((e) => e.code === (packCode ?? inv.getPacks()[0].code));
 
     if (invIndex < 0) {
@@ -59,7 +59,7 @@ export const open: Command = {
         });
     }
     let dropPoolIndex = droppool.findIndex(
-      (e: Item) => e.code === (packCode ?? inv.getPacks()[0].code)
+      (e: Pack) => e.code === (packCode ?? inv.getPacks()[0].code)
     );
     if (dropPoolIndex < 0)
       return interaction.reply({
@@ -141,7 +141,8 @@ export const open: Command = {
       inv.addItem(reward);
     }
 
-    helper.updateInventoryRef(inv, interaction.user);
+    inv.setUserId(interaction.user.id);
+    helper.updateInventoryRef(inv);
     helper.updateTotalPacksOpened(interaction.user, db, 1);
     helper.updateTotalEXP(interaction, db, 1, expAmount);
 

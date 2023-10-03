@@ -1,17 +1,15 @@
 import { Client, EmbedBuilder, ModalSubmitInteraction } from "discord.js";
 import * as helper from "../ext/Helper";
 import { ModalInteraction } from "./IModalInteraction";
-import fs from "node:fs";
 import Item from "../Classes/Item";
-import Pack from "../Classes/Pack";
 
 export const card_50_pick: ModalInteraction = {
   modalId: "card_50_pick",
   async execute(client: Client, interaction: ModalSubmitInteraction) {
     const cardCode = interaction.fields.getTextInputValue("picked_card");
 
-    const droppool = JSON.parse(fs.readFileSync("./data/droppool.json", "utf-8"));
-    const inv = helper.getInventoryAsObject(interaction.user.id);
+    const droppool = await helper.fetchDroppool();
+    const inv = await helper.fetchInventory(interaction.user.id);
     const balthazar = [...inv.getActiveItems(), ...inv.getItems()].find((e) => e.id === 50);
     if (!balthazar)
       return interaction.reply({
@@ -22,7 +20,7 @@ export const card_50_pick: ModalInteraction = {
     let card: any = [...inv.getActiveItems(), ...inv.getItems()].find((e) => e.code === cardCode);
     if (!card) {
       for (const pack of droppool) {
-        const item = pack.items.find((e: Pack) => e.code === cardCode);
+        const item = pack.items.find((e: Item) => e.code === cardCode);
         if (!item) continue;
 
         return interaction.reply({
@@ -55,7 +53,7 @@ export const card_50_pick: ModalInteraction = {
     }
 
     balthazar.use();
-    helper.updateInventoryRef(inv, interaction.user);
+    helper.updateInventoryRef(inv);
 
     interaction.reply({
       embeds: [

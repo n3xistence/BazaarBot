@@ -2,6 +2,8 @@ import { Client, EmbedBuilder, CommandInteraction } from "discord.js";
 import { Command } from "./ICommand";
 const { version } = require("../../package.json");
 
+import * as helper from "../ext/Helper";
+
 export const info: Command = {
   name: "info",
   description: "Shows info",
