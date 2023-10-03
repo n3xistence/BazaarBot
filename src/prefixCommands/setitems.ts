@@ -8,8 +8,8 @@ import Logger from "../ext/Logger";
 import * as Database from "../Database";
 import AccessValidator from "../Classes/AccessValidator";
 
-export const test: PrefixCommand = {
-  name: "test",
+export const setitems: PrefixCommand = {
+  name: "setitems",
   async execute(client: Client, message: Message) {
     if (!message.member) return;
 
