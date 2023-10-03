@@ -46,7 +46,7 @@ export const inventory: Command = {
     const rarityFilter = interaction.options.getString("rarity");
     const typeFilter = interaction.options.getString("type");
 
-    let inv = helper.getInventoryAsObject(interaction.user.id);
+    let inv = await helper.fetchInventory(interaction.user.id);
     let items: Array<Item | Pack> = extractItemsFromInventory(inv);
     const uniqueCards = [...inv.getItems(), ...inv.getActiveItems()].length;
 

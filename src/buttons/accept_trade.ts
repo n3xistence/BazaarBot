@@ -8,7 +8,7 @@ import {
   ButtonBuilder,
   ButtonStyle,
 } from "discord.js";
-import fs from "node:fs";
+import * as Database from "../Database";
 
 const getConfirmationButtons = () => {
   return new ActionRowBuilder().addComponents(
@@ -24,8 +24,8 @@ const getConfirmationButtons = () => {
   );
 };
 
-const stringifyItemList = (list: Array<Item>, helper: any) => {
-  return [...list].map((item) => {
+const stringifyItemList = (list: any, helper: any) => {
+  return list.map((item: any) => {
     let rarity = { emote: "" };
     switch (item.rarity) {
       case "Celestial":
@@ -49,62 +49,91 @@ const stringifyItemList = (list: Array<Item>, helper: any) => {
 export const accept_trade: any = {
   customId: "accept_trade",
   async execute(client: Client, interaction: ButtonInteraction) {
-    let allTrades = JSON.parse(fs.readFileSync("./data/trades.json", "utf-8"));
-    let tradeIndex = allTrades.findIndex((e: any) => e.msg.id === interaction.message.id);
-    let activeTrade = allTrades[tradeIndex];
+    const ownTradesQuery: string =
+      /*sql*/
+      `
+      SELECT 
+        dp.code, dp.name, tr.msg_link, 
+        tr.owner_id, tr.target_id, 
+        td.user_id, td.item_type, 
+        td.item_id, td.amount,
+        tr.owner_accepted,
+        tr.target_accepted
+      FROM trade tr
+      LEFT JOIN trade_details td ON td.trade_id = tr.id 
+      LEFT JOIN droppool dp ON td.item_id = dp.cid
+      WHERE tr.msg_id=\'${interaction.message.id}\'
+    `;
+    const db = Database.init();
 
-    let isOwner = activeTrade.owner.id === interaction.user.id;
-    if (activeTrade[isOwner ? "owner" : "target"].accepted) return interaction.deferUpdate();
+    let { rows: activeTrade } = await db.query(ownTradesQuery);
+    if (activeTrade.length === 0) return;
 
-    if (activeTrade[isOwner ? "target" : "owner"].accepted) {
-      activeTrade[isOwner ? "owner" : "target"].accepted = true;
-      const ownerItemString = stringifyItemList(activeTrade.owner.items, helper).join("\n");
-      const targetItemString = stringifyItemList(activeTrade.target.items, helper).join("\n");
+    const owner = await client.users.fetch(activeTrade[0].owner_id);
+    const target = await client.users.fetch(activeTrade[0].target_id);
+
+    let isOwner = activeTrade[0].owner_id === interaction.user.id;
+    if (activeTrade[0][isOwner ? "owner_accepted" : "target_accepted"])
+      return interaction.deferUpdate();
+
+    if (activeTrade[0][isOwner ? "target_accepted" : "owner_accepted"]) {
+      activeTrade[0][isOwner ? "owner_accepted" : "target_accepted"] = true;
+      const ownerItemString = stringifyItemList(
+        activeTrade
+          .filter((e: any) => e.user_id === e.owner_id && e.item_id)
+          .map((e: any) => [e.code, e.name]),
+        helper
+      ).join("\n");
+      const targetItemString = stringifyItemList(
+        activeTrade
+          .filter((e: any) => e.user_id === e.target_id && e.item_id)
+          .map((e: any) => [e.code, e.name]),
+        helper
+      ).join("\n");
       let embed = new EmbedBuilder()
         .setTitle("Trade Concluded")
         .setColor("Blue")
         .addFields(
           {
-            name: `[${activeTrade.owner.accepted ? helper.emoteApprove : helper.emoteDeny}] ${
-              activeTrade.owner.name
+            name: `[${activeTrade[0].owner_accepted ? helper.emoteApprove : helper.emoteDeny}] ${
+              owner.username
             }:`,
             value: `${ownerItemString.length > 1 ? ownerItemString : "No Items Added"}`,
             inline: true,
           },
           {
-            name: `[${activeTrade.target.accepted ? helper.emoteApprove : helper.emoteDeny}] ${
-              activeTrade.target.name
+            name: `[${activeTrade[0].target_accepted ? helper.emoteApprove : helper.emoteDeny}] ${
+              target.username
             }:`,
             value: `${targetItemString.length > 1 ? targetItemString : "No Items Added"}`,
             inline: true,
           }
         );
 
-      let inv = helper.getInventoryAsObject(interaction.user.id);
-      let targetInv = helper.getInventoryAsObject(activeTrade[isOwner ? "target" : "owner"].id);
-      let targetUser = await client.users.fetch(activeTrade[isOwner ? "target" : "owner"].id);
+      let inv = await helper.fetchInventory(interaction.user.id);
+      let targetInv = await helper.fetchInventory(
+        activeTrade[0][isOwner ? "target_id" : "owner_id"]
+      );
+      let targetUser = await client.users.fetch(activeTrade[0][isOwner ? "target_id" : "owner_id"]);
 
       // send own items
-      for (const item of activeTrade[isOwner ? "owner" : "target"].items) {
+      for (const item of activeTrade[0][isOwner ? "owner_id" : "target_id"].items) {
         item.amount = 1;
         targetInv.addItem(item);
         inv.removeItem(item);
       }
 
       // send target items
-      for (const item of activeTrade[isOwner ? "target" : "owner"].items) {
+      for (const item of activeTrade[0][isOwner ? "target_id" : "owner_id"].items) {
         item.amount = 1;
         inv.addItem(item);
         targetInv.removeItem(item);
       }
 
-      helper.updateInventoryRef(inv, interaction.user);
-      helper.updateInventoryRef(targetInv, targetUser);
+      helper.updateInventoryRef(inv);
+      helper.updateInventoryRef(targetInv);
 
-      allTrades.splice(tradeIndex, 1);
-      fs.writeFileSync("./data/trades.json", JSON.stringify(allTrades, null, "\t"));
-
-      let msg = await interaction.channel?.messages.fetch(activeTrade.msg.id);
+      let msg = await interaction.channel?.messages.fetch(activeTrade[0].msg_id);
       await msg?.edit({ embeds: [embed], components: [] });
 
       return interaction.reply({
@@ -117,36 +146,51 @@ export const accept_trade: any = {
         ],
       });
     } else {
-      activeTrade[isOwner ? "owner" : "target"].accepted = true;
+      activeTrade[0][isOwner ? "owner_accepted" : "target_accepted"] = true;
+      db.query(
+        /* SQL */
+        `
+          UPDATE trade 
+          SET ${isOwner ? "owner_accepted" : "target_accepted"}='true' 
+          WHERE msg_id=\'${interaction.message.id}\'
+        `
+      );
 
-      fs.writeFileSync("./data/trades.json", JSON.stringify(allTrades, null, "\t"));
-
-      const ownerItemString = stringifyItemList(activeTrade.owner.items, helper).join("\n");
-      const targetItemString = stringifyItemList(activeTrade.target.items, helper).join("\n");
+      const ownerItemString = stringifyItemList(
+        activeTrade
+          .filter((e: any) => e.user_id === e.owner_id && e.item_id)
+          .map((e: any) => [e.code, e.name]),
+        helper
+      ).join("\n");
+      const targetItemString = stringifyItemList(
+        activeTrade
+          .filter((e: any) => e.user_id === e.target_id && e.item_id)
+          .map((e: any) => [e.code, e.name]),
+        helper
+      ).join("\n");
 
       let embed = new EmbedBuilder()
         .setTitle("Active Trade")
         .setColor("Blue")
         .addFields(
           {
-            name: `[${activeTrade.owner.accepted ? helper.emoteApprove : helper.emoteDeny}] ${
-              activeTrade.owner.name
+            name: `[${activeTrade[0].owner_accepted ? helper.emoteApprove : helper.emoteDeny}] ${
+              owner.username
             }:`,
             value: `${ownerItemString.length > 1 ? ownerItemString : "No Items Added"}`,
             inline: true,
           },
           {
-            name: `[${activeTrade.target.accepted ? helper.emoteApprove : helper.emoteDeny}] ${
-              activeTrade.target.name
+            name: `[${activeTrade[0].target_accepted ? helper.emoteApprove : helper.emoteDeny}] ${
+              target.username
             }:`,
             value: `${targetItemString.length > 1 ? targetItemString : "No Items Added"}`,
             inline: true,
           }
         );
 
-      let msg = await interaction.channel?.messages.fetch(activeTrade.msg.id);
       let row = getConfirmationButtons();
-      await msg?.edit({ embeds: [embed], components: [row as any] });
+      await interaction.message.edit({ embeds: [embed], components: [row as any] });
 
       return interaction.reply({
         embeds: [
@@ -154,7 +198,7 @@ export const accept_trade: any = {
             .setColor("Green")
             .setDescription(
               `[${helper.emoteApprove}] ${interaction.user} has just accepted the trade with <@${
-                activeTrade[!isOwner ? "owner" : "target"].id
+                activeTrade[0][!isOwner ? "owner_id" : "target_id"]
               }>`
             ),
         ],

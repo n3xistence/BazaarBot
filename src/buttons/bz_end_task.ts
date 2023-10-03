@@ -109,7 +109,7 @@ const handleTaskEnd = async (db: any, interaction: any, client: Client) => {
     winners.push(winner);
   }
 
-  let inventories = JSON.parse(fs.readFileSync("./data/inventories.json", "utf-8"));
+  let inventories = await helper.fetchAllInventories();
 
   let activeItems = getAllActiveItems(inventories, activeTask.rows[0].type);
 
@@ -127,7 +127,7 @@ const handleTaskEnd = async (db: any, interaction: any, client: Client) => {
       hasRunestoneCard
     );
 
-    let inv = helper.getInventoryAsObject(winner.id);
+    let inv = await helper.fetchInventory(winner.id);
     const hasCloverCard = [inv.getActiveItems()].find((e: any) => e.id === 49) !== undefined;
     const hasGameCenterCard = inv.getActiveItems().find((e: any) => e.id === 28) !== undefined;
 
@@ -202,7 +202,7 @@ const handleTaskEnd = async (db: any, interaction: any, client: Client) => {
     ],
   });
 
-  fs.writeFileSync("./data/inventories.json", JSON.stringify(inventories, null, "\t"));
+  helper.updateAllInventories(inventories);
 
   query = `UPDATE Bazaar SET active='false' WHERE id=$1`;
   db.query(query, [activeTask.rows[0].id]);
@@ -238,14 +238,14 @@ export const bz_end_task: any = {
       const taskRes: any = await handleTaskEnd(db, interaction, client);
       if (!taskRes || taskRes.void) return;
 
-      const inventories = JSON.parse(fs.readFileSync("./data/inventories.json", "utf-8"));
+      const inventories = await helper.fetchAllInventories();
       for (const entry of inventories) {
-        let user = await client.users.fetch(entry.userId).catch(() => {});
+        let user = await client.users.fetch(entry.userId ?? "").catch(() => {});
         if (!user) continue;
 
-        let inv = helper.getInventoryAsObject(user.id);
+        let inv = await helper.fetchInventory(user.id);
         inv.endTask();
-        helper.updateInventoryRef(inv, user);
+        await helper.updateInventoryRef(inv);
       }
 
       interaction.message.edit({

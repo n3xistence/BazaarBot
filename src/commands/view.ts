@@ -15,7 +15,7 @@ const getAllItems = (data: any) => {
   let allItems = [];
 
   for (const entry of data) {
-    let inv = [...entry.inventory.activeItems, ...entry.inventory.list];
+    let inv = [...entry.activeItems, ...entry.list];
 
     for (const item of inv) {
       let index = allItems.findIndex((e) => e.code === item.code);
@@ -43,7 +43,7 @@ export const view: Command = {
     if (!interaction.isChatInputCommand()) return;
 
     let cardCode = interaction.options.getString("code");
-    let inv = helper.getInventoryAsObject(interaction.user.id);
+    let inv = await helper.fetchInventory(interaction.user.id);
     let card: Item | undefined = [...inv.getItems(), ...inv.getActiveItems()].find(
       (e) => e.code === cardCode
     );
@@ -80,7 +80,7 @@ export const view: Command = {
         break;
     }
 
-    const inventories = JSON.parse(fs.readFileSync("./data/inventories.json", "utf-8"));
+    const inventories = await helper.fetchAllInventories();
     const allItems = getAllItems(inventories);
     const circulation = [...allItems].find((e) => e.code === (card as Item).code)?.amount ?? 0;
 

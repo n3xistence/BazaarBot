@@ -34,7 +34,7 @@ export const spy: Command = {
       });
 
     const db = Database.init();
-    const ownInv = helper.getInventoryAsObject(interaction.user.id);
+    const ownInv = await helper.fetchInventory(interaction.user.id);
     const hasSpyglass = ownInv.getActiveItems().find((e) => e.id === 26);
     if (!hasSpyglass)
       return interaction.reply({
@@ -42,7 +42,7 @@ export const spy: Command = {
         ephemeral: true,
       });
 
-    let inv = helper.getInventoryAsObject(targetUser.id);
+    let inv = await helper.fetchInventory(targetUser.id);
     let items = extractItemsFromInventory(inv);
     const uniqueCards = [...inv.getItems(), ...inv.getActiveItems()].length;
 

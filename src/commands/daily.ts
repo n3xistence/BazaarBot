@@ -3,7 +3,6 @@ import * as helper from "../ext/Helper";
 import { Command } from "./ICommand";
 import Item from "../Classes/Item";
 import * as Database from "../Database";
-import fs from "node:fs";
 import pg from "pg";
 
 const weeklyRewards: Array<number> = [15, 12, 9, 6, 3];
@@ -50,8 +49,8 @@ export const daily: Command = {
   description: "Trigger your daily cards",
   async execute(client: Client, interaction: CommandInteraction) {
     const db = Database.init();
-    const droppool = JSON.parse(fs.readFileSync("./data/droppool.json", "utf-8"));
-    let inv = helper.getInventoryAsObject(interaction.user.id);
+    const droppool = await helper.fetchDroppool();
+    let inv = await helper.fetchInventory(interaction.user.id);
 
     let dailyCardIDs = [23, 29, 35, 44];
     const dailyCards: Array<any> = dailyCardIDs.map((e) => {

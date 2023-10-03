@@ -7,6 +7,8 @@ type Item = {
   amount: number;
   rarity: string;
   cardType: string | Cooldown;
+  cooldown_max?: number;
+  cooldown_current?: number;
   description: string;
   target: string;
   usage: string;

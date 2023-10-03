@@ -1,10 +1,10 @@
 import CommandOptions from "../enums/CommandOptions";
-import Item from "../Classes/Item";
 import { Command } from "./ICommand";
 import { Client, CommandInteraction, EmbedBuilder } from "discord.js";
-import fs from "node:fs";
 import * as Database from "../Database";
+import * as helper from "../ext/Helper";
 import AccessValidator from "../Classes/AccessValidator";
+import Pack from "../Classes/Pack";
 
 export const additem: Command = {
   name: "additem",
@@ -31,25 +31,32 @@ export const additem: Command = {
       });
 
     let itemCode = interaction.options.getString("code");
-    let shopItems = JSON.parse(fs.readFileSync("./data/shop.json", "utf-8"));
-    const droppool = JSON.parse(fs.readFileSync("./data/droppool.json", "utf-8"));
+    if (!itemCode)
+      return interaction.reply({
+        content: "You need to provide an item code.",
+        ephemeral: true,
+      });
 
-    let itemInShop = shopItems.find((e: Item) => e.code === itemCode) !== undefined;
+    let shopItems: Array<{ pid: string; gems: number; scrap: number }> =
+      await helper.fetchShopItems();
+
+    const droppool = await helper.fetchDroppool();
+
+    let itemInShop = shopItems.find((e: any) => e.pid === itemCode) !== undefined;
     if (itemInShop)
       return interaction.reply({
         content: `The item with the ID \`${itemCode}\` is already in the shop.`,
         ephemeral: true,
       });
 
-    let item = droppool.find((e: Item) => e.code === itemCode);
+    let item = droppool.find((e: Pack) => e.code === itemCode);
     if (!item)
       return interaction.reply({
         content: `There is no item with the ID \`${itemCode}\` in the droppool.`,
         ephemeral: true,
       });
 
-    shopItems.push(item);
-    fs.writeFileSync("./data/shop.json", JSON.stringify(shopItems, null, "\t"));
+    helper.addPackToShop(itemCode);
 
     return interaction.reply({
       embeds: [

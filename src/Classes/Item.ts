@@ -15,15 +15,30 @@ class Item {
   effects: Array<ItemEffect>;
   targetUser?: string | object;
 
-  constructor(props: ItemType) {
-    const { name, id, amount, rarity, cardType, description, target, usage, effects } = props;
-
+  constructor({
+    name,
+    id,
+    amount,
+    rarity,
+    cardType,
+    description,
+    target,
+    usage,
+    effects,
+    cooldown_current,
+    cooldown_max,
+  }: ItemType) {
     this.name = name;
     this.id = id;
     this.code = `bz${new Integer(id).toBase36()}`;
     this.rarity = rarity;
     this.amount = amount ?? 1;
-    this.cardType = cardType;
+    this.cardType =
+      cardType === "cooldown"
+        ? ({
+            cooldown: { max: cooldown_max, current: cooldown_current },
+          } as Cooldown)
+        : cardType;
     this.description = description;
     this.target = target;
     if (target === "target") this.targetUser = "";

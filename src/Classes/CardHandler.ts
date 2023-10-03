@@ -29,7 +29,7 @@ const applyGemBonus = (inv: Inventory, baseValue: number) => {
 const handleCard23 = async (card: Item, db: any, interaction: CommandInteraction) => {
   const baseReward = 3;
 
-  const inv = helper.getInventoryAsObject(interaction.user.id);
+  const inv = await helper.fetchInventory(interaction.user.id);
   const foundCard = inv.getItems().find((e) => e.id === card.id);
   if (!foundCard)
     return interaction.reply({
@@ -54,7 +54,8 @@ const handleCard23 = async (card: Item, db: any, interaction: CommandInteraction
   }
 
   card.resetCooldown();
-  helper.updateInventoryRef(inv, interaction.user);
+  inv.setUserId(interaction.user.id);
+  helper.updateInventoryRef(inv);
 
   return { error: false, reward: baseReward, type: "gems" };
 };
@@ -64,8 +65,8 @@ const handleCard23 = async (card: Item, db: any, interaction: CommandInteraction
  * Fragile Vase
  * +10% reward from the task (gold/gems)
  */
-const handleCard24 = (card: Item, db: any, interaction: CommandInteraction) => {
-  let inv = helper.getInventoryAsObject(interaction.user.id);
+const handleCard24 = async (card: Item, db: any, interaction: CommandInteraction) => {
+  let inv = await helper.fetchInventory(interaction.user.id);
 
   const foundCard = inv.getItems().find((e) => e.id === card.id);
   if (!foundCard)
@@ -75,7 +76,8 @@ const handleCard24 = (card: Item, db: any, interaction: CommandInteraction) => {
   card = foundCard;
 
   inv.setActiveItem(card);
-  helper.updateInventoryRef(inv, interaction.user);
+  inv.setUserId(interaction.user.id);
+  helper.updateInventoryRef(inv);
 
   return interaction.reply({
     embeds: [
@@ -93,14 +95,14 @@ const handleCard24 = (card: Item, db: any, interaction: CommandInteraction) => {
  * Green Artifact
  * Gain a random celestial card on use
  */
-const handleCard25 = (card: Item, db: any, interaction: CommandInteraction) => {
+const handleCard25 = async (card: Item, db: any, interaction: CommandInteraction) => {
   if (card.amount < 25)
     return interaction.reply({
       content: `You can only use this card if you have 25 duplicates.\nYou currently own ${card.amount} duplicates.`,
       ephemeral: true,
     });
 
-  let inv = helper.getInventoryAsObject(interaction.user.id);
+  let inv = await helper.fetchInventory(interaction.user.id);
   const foundCard = inv.getItems().find((e) => e.id === card.id);
   if (!foundCard)
     return interaction.reply({
@@ -108,7 +110,7 @@ const handleCard25 = (card: Item, db: any, interaction: CommandInteraction) => {
     });
   card = foundCard;
 
-  const droppool = JSON.parse(fs.readFileSync("./data/droppool.json", "utf-8"))[0];
+  const droppool = (await helper.fetchDroppool())[0];
   const celestialCards = [...droppool.items].filter(
     (e: any) => e.rarity.toLowerCase() === "celestial"
   );
@@ -117,7 +119,8 @@ const handleCard25 = (card: Item, db: any, interaction: CommandInteraction) => {
 
   inv.removeItem(card, 25);
   inv.addItem(randomCelestial);
-  helper.updateInventoryRef(inv, interaction.user);
+  inv.setUserId(interaction.user.id);
+  helper.updateInventoryRef(inv);
 
   interaction.reply({
     embeds: [
@@ -136,8 +139,8 @@ const handleCard25 = (card: Item, db: any, interaction: CommandInteraction) => {
  * Game Center
  * 50/50 chance to gain +100% reward or pay the Bazaar the reward
  */
-const toggleCard28 = (card: Item, db: any, interaction: CommandInteraction) => {
-  const inv = helper.getInventoryAsObject(interaction.user.id);
+const toggleCard28 = async (card: Item, db: any, interaction: CommandInteraction) => {
+  const inv = await helper.fetchInventory(interaction.user.id);
   const isActive = inv.getActiveItems().find((e: any) => e.id === card.id) !== undefined;
   const action = isActive ? "disabled" : "enabled";
 
@@ -149,7 +152,8 @@ const toggleCard28 = (card: Item, db: any, interaction: CommandInteraction) => {
   card = foundCard;
 
   inv.setActiveItem(card);
-  helper.updateInventoryRef(inv, interaction.user);
+  inv.setUserId(interaction.user.id);
+  helper.updateInventoryRef(inv);
 
   return interaction.reply({
     embeds: [
@@ -170,7 +174,7 @@ const toggleCard28 = (card: Item, db: any, interaction: CommandInteraction) => {
 const handleCard29 = async (card: Item, db: any, interaction: CommandInteraction) => {
   const baseValue = 7;
 
-  const inv = helper.getInventoryAsObject(interaction.user.id);
+  const inv = await helper.fetchInventory(interaction.user.id);
   if ((card.cardType as Cooldown).cooldown?.current > 0) return { error: true };
 
   const foundCard = inv.getItems().find((e) => e.id === card.id);
@@ -195,7 +199,8 @@ const handleCard29 = async (card: Item, db: any, interaction: CommandInteraction
   }
 
   card.resetCooldown();
-  helper.updateInventoryRef(inv, interaction.user);
+  inv.setUserId(interaction.user.id);
+  helper.updateInventoryRef(inv);
 
   return { error: false, reward: baseValue, type: "gems" };
 };
@@ -211,7 +216,7 @@ const handleCard30 = async (
   interaction: CommandInteraction,
   client: Client
 ) => {
-  const inv = helper.getInventoryAsObject(interaction.user.id);
+  const inv = await helper.fetchInventory(interaction.user.id);
   const foundCard = inv.getItems().find((e) => e.id === card.id);
   if (!foundCard)
     return interaction.reply({
@@ -253,7 +258,8 @@ const handleCard30 = async (
 
   card.targetUser = user;
   inv.setActiveItem(card);
-  helper.updateInventoryRef(inv, interaction.user);
+  inv.setUserId(interaction.user.id);
+  helper.updateInventoryRef(inv);
 
   return newInteraction
     .reply({
@@ -295,7 +301,7 @@ const handleCard32 = async (card: Item, db: any, interaction: CommandInteraction
       ephemeral: true,
     });
 
-  const inv = helper.getInventoryAsObject(interaction.user.id);
+  const inv = await helper.fetchInventory(interaction.user.id);
   const foundCard = inv.getItems().find((e) => e.id === card.id);
   if (!foundCard)
     return interaction.reply({
@@ -322,7 +328,7 @@ const handleCard32 = async (card: Item, db: any, interaction: CommandInteraction
   query = `UPDATE currency SET scrap=$1 WHERE id=$2`;
   db.query(query, [newBalance, interaction.user.id]);
 
-  const droppool = JSON.parse(fs.readFileSync("./data/droppool.json", "utf-8"));
+  const droppool = await helper.fetchDroppool();
   let dropPoolIndex = droppool.findIndex((e: any) => e.code === "alpha");
   let cardPool = {
     common: {
@@ -355,9 +361,9 @@ const handleCard32 = async (card: Item, db: any, interaction: CommandInteraction
   else reward = helper.randomPick(cardPool.common.pool);
 
   inv.addItem(reward);
-
   card.resetCooldown();
-  helper.updateInventoryRef(inv, interaction.user);
+  inv.setUserId(interaction.user.id);
+  helper.updateInventoryRef(inv);
 
   return interaction.reply({
     embeds: [
@@ -376,10 +382,10 @@ const handleCard32 = async (card: Item, db: any, interaction: CommandInteraction
  * Crafting
  * Gain one Base Set Card and 10 exp
  */
-const handleCard33 = (card: Item, db: any, interaction: CommandInteraction) => {
+const handleCard33 = async (card: Item, db: any, interaction: CommandInteraction) => {
   const expAmount = 10;
 
-  const inv = helper.getInventoryAsObject(interaction.user.id);
+  const inv = await helper.fetchInventory(interaction.user.id);
   const foundCard = inv.getItems().find((e) => e.id === card.id);
   if (!foundCard)
     return interaction.reply({
@@ -397,7 +403,7 @@ const handleCard33 = (card: Item, db: any, interaction: CommandInteraction) => {
       ephemeral: true,
     });
 
-  const droppool = JSON.parse(fs.readFileSync("./data/droppool.json", "utf-8"));
+  const droppool = await helper.fetchDroppool();
 
   let dropPoolIndex = droppool.findIndex((e: any) => e.code === "alpha");
   let cardPool = {
@@ -437,7 +443,8 @@ const handleCard33 = (card: Item, db: any, interaction: CommandInteraction) => {
   inv.addItem(reward);
 
   card.resetCooldown();
-  helper.updateInventoryRef(inv, interaction.user);
+  inv.setUserId(interaction.user.id);
+  helper.updateInventoryRef(inv);
   helper.updateTotalEXP(interaction, db, 1, expAmount);
 
   return interaction.reply({
@@ -457,8 +464,8 @@ const handleCard33 = (card: Item, db: any, interaction: CommandInteraction) => {
  * Horse and Carriage
  * Bypass a tasks location requirement
  */
-const handleCard34 = (card: Item, db: any, interaction: CommandInteraction) => {
-  const inv = helper.getInventoryAsObject(interaction.user.id);
+const handleCard34 = async (card: Item, db: any, interaction: CommandInteraction) => {
+  const inv = await helper.fetchInventory(interaction.user.id);
 
   const foundCard = inv.getItems().find((e) => e.id === card.id);
   if (!foundCard)
@@ -478,7 +485,8 @@ const handleCard34 = (card: Item, db: any, interaction: CommandInteraction) => {
     });
 
   card.resetCooldown();
-  helper.updateInventoryRef(inv, interaction.user);
+  inv.setUserId(interaction.user.id);
+  helper.updateInventoryRef(inv);
 
   return interaction.reply({
     embeds: [
@@ -497,7 +505,7 @@ const handleCard34 = (card: Item, db: any, interaction: CommandInteraction) => {
  */
 const handleCard35 = async (card: Item, db: any, interaction: CommandInteraction) => {
   const reward = 50;
-  const inv = helper.getInventoryAsObject(interaction.user.id);
+  const inv = await helper.fetchInventory(interaction.user.id);
   const foundCard = inv.getItems().find((e) => e.id === card.id);
   if (!foundCard)
     return interaction.reply({
@@ -509,7 +517,8 @@ const handleCard35 = async (card: Item, db: any, interaction: CommandInteraction
   if (!used) return { error: true };
 
   card.resetCooldown();
-  helper.updateInventoryRef(inv, interaction.user);
+  inv.setUserId(interaction.user.id);
+  helper.updateInventoryRef(inv);
 
   const query = `SELECT * FROM BazaarStats WHERE id=$1`;
   let currentEXP = await db.query(query, [interaction.user.id]);
@@ -556,8 +565,8 @@ const handleCard35 = async (card: Item, db: any, interaction: CommandInteraction
  * Crystal
  * +25% reward from the task (gold/gems)
  */
-const handleCard36 = (card: Item, db: any, interaction: CommandInteraction) => {
-  const inv = helper.getInventoryAsObject(interaction.user.id);
+const handleCard36 = async (card: Item, db: any, interaction: CommandInteraction) => {
+  const inv = await helper.fetchInventory(interaction.user.id);
 
   const foundCard = inv.getItems().find((e) => e.id === card.id);
   if (!foundCard)
@@ -567,7 +576,8 @@ const handleCard36 = (card: Item, db: any, interaction: CommandInteraction) => {
   card = foundCard;
 
   inv.setActiveItem(card);
-  helper.updateInventoryRef(inv, interaction.user);
+  inv.setUserId(interaction.user.id);
+  helper.updateInventoryRef(inv);
 
   return interaction.reply({
     embeds: [
@@ -585,8 +595,8 @@ const handleCard36 = (card: Item, db: any, interaction: CommandInteraction) => {
  * Orphanage
  * whatever
  */
-const handleCard38 = (card: Item, db: any, interaction: CommandInteraction) => {
-  const inv = helper.getInventoryAsObject(interaction.user.id);
+const handleCard38 = async (card: Item, db: any, interaction: CommandInteraction) => {
+  const inv = await helper.fetchInventory(interaction.user.id);
 
   const foundCard = inv.getItems().find((e) => e.id === card.id);
   if (!foundCard)
@@ -596,7 +606,8 @@ const handleCard38 = (card: Item, db: any, interaction: CommandInteraction) => {
   card = foundCard;
 
   inv.setActiveItem(card);
-  helper.updateInventoryRef(inv, interaction.user);
+  inv.setUserId(interaction.user.id);
+  helper.updateInventoryRef(inv);
 
   return interaction.reply({
     embeds: [
@@ -621,7 +632,7 @@ const handleCard37 = async (card: Item, db: any, interaction: CommandInteraction
   const query = `SELECT * FROM currency WHERE id=$1`;
   let points = await db.query(query, [interaction.user.id]);
 
-  let inv = helper.getInventoryAsObject(interaction.user.id);
+  let inv = await helper.fetchInventory(interaction.user.id);
   const foundCard = inv.getItems().find((e) => e.id === card.id);
   if (!foundCard)
     return interaction.reply({
@@ -670,7 +681,8 @@ const handleCard37 = async (card: Item, db: any, interaction: CommandInteraction
   }
 
   inv.removeItem(card);
-  helper.updateInventoryRef(inv, interaction.user);
+  inv.setUserId(interaction.user.id);
+  helper.updateInventoryRef(inv);
 };
 
 /**
@@ -681,7 +693,7 @@ const handleCard37 = async (card: Item, db: any, interaction: CommandInteraction
 const handleCard39 = async (card: Item, db: any, interaction: CommandInteraction) => {
   let points = await db.query(`SELECT * FROM currency WHERE id=$1`, [interaction.user.id]);
 
-  let inv = helper.getInventoryAsObject(interaction.user.id);
+  let inv = await helper.fetchInventory(interaction.user.id);
   const foundCard = inv.getItems().find((e) => e.id === card.id);
   if (!foundCard)
     return interaction.reply({
@@ -700,7 +712,8 @@ const handleCard39 = async (card: Item, db: any, interaction: CommandInteraction
     db.query(query, [gems, interaction.user.id]);
 
     inv.removeItem(card);
-    helper.updateInventoryRef(inv, interaction.user);
+    inv.setUserId(interaction.user.id);
+    helper.updateInventoryRef(inv);
 
     interaction.reply({
       embeds: [
@@ -721,7 +734,8 @@ const handleCard39 = async (card: Item, db: any, interaction: CommandInteraction
     db.query(query, [interaction.user.id, 0, reward, 0]);
 
     inv.removeItem(card);
-    helper.updateInventoryRef(inv, interaction.user);
+    inv.setUserId(interaction.user.id);
+    helper.updateInventoryRef(inv);
 
     interaction.reply({
       embeds: [
@@ -743,8 +757,8 @@ const handleCard39 = async (card: Item, db: any, interaction: CommandInteraction
  * Colosseum
  * Enables /bz attack (@player) command allowing for pvp
  */
-const toggleCard40 = (card: Item, db: any, interaction: CommandInteraction) => {
-  const inv = helper.getInventoryAsObject(interaction.user.id);
+const toggleCard40 = async (card: Item, db: any, interaction: CommandInteraction) => {
+  const inv = await helper.fetchInventory(interaction.user.id);
   const foundCard = [...inv.getItems(), ...inv.getActiveItems()].find((e) => e.id === card.id);
   if (!foundCard)
     return interaction.reply({
@@ -756,7 +770,8 @@ const toggleCard40 = (card: Item, db: any, interaction: CommandInteraction) => {
   const action = isActive ? "disabled" : "enabled";
 
   inv.setActiveItem(card);
-  helper.updateInventoryRef(inv, interaction.user);
+  inv.setUserId(interaction.user.id);
+  helper.updateInventoryRef(inv);
 
   return interaction.reply({
     embeds: [
@@ -779,7 +794,7 @@ const handleCard44 = async (card: Item, db: any, interaction: CommandInteraction
 
   if ((card.cardType as Cooldown).cooldown?.current > 0) return { error: true };
 
-  const inv = helper.getInventoryAsObject(interaction.user.id);
+  const inv = await helper.fetchInventory(interaction.user.id);
   const foundCard = inv.getItems().find((e) => e.id === card.id);
   if (!foundCard)
     return interaction.reply({
@@ -803,7 +818,8 @@ const handleCard44 = async (card: Item, db: any, interaction: CommandInteraction
   card.resetCooldown();
   const invIndex = inv.getItems().findIndex((e) => e.id === card.id);
   if (invIndex >= 0) inv.list[invIndex] = card;
-  helper.updateInventoryRef(inv, interaction.user);
+  inv.setUserId(interaction.user.id);
+  helper.updateInventoryRef(inv);
 
   return { error: false, reward: gains, type: "gems" };
 };
@@ -813,8 +829,8 @@ const handleCard44 = async (card: Item, db: any, interaction: CommandInteraction
  * O'Lo
  * Reduce cooldown of cards by 1
  */
-const handleCard45 = (card: Item, db: any, interaction: CommandInteraction) => {
-  const inv = helper.getInventoryAsObject(interaction.user.id);
+const handleCard45 = async (card: Item, db: any, interaction: CommandInteraction) => {
+  const inv = await helper.fetchInventory(interaction.user.id);
   const allItems = [...inv.getItems()];
 
   if ((card.cardType as Cooldown).cooldown?.current > 0)
@@ -841,7 +857,8 @@ const handleCard45 = (card: Item, db: any, interaction: CommandInteraction) => {
     });
 
   foundCard.resetCooldown();
-  helper.updateInventoryRef(inv, interaction.user);
+  inv.setUserId(interaction.user.id);
+  helper.updateInventoryRef(inv);
 
   return interaction.reply({
     embeds: [
@@ -864,7 +881,7 @@ const handleCard46 = async (
   interaction: CommandInteraction,
   client: Client
 ) => {
-  const inv = helper.getInventoryAsObject(interaction.user.id);
+  const inv = await helper.fetchInventory(interaction.user.id);
   const cardName = card.name;
 
   const foundCard = inv.getItems().find((e) => e.id === card.id);
@@ -908,7 +925,8 @@ const handleCard46 = async (
 
   card.targetUser = user;
   inv.setActiveItem(card);
-  helper.updateInventoryRef(inv, interaction.user);
+  inv.setUserId(interaction.user.id);
+  helper.updateInventoryRef(inv);
 
   return newInteraction.reply({
     content: "<@755563171758211154>",
@@ -927,8 +945,8 @@ const handleCard46 = async (
  * Treasure Chest
  * +100% reward from the task (gold/gems)
  */
-const handleCard47 = (card: Item, db: any, interaction: CommandInteraction) => {
-  const inv = helper.getInventoryAsObject(interaction.user.id);
+const handleCard47 = async (card: Item, db: any, interaction: CommandInteraction) => {
+  const inv = await helper.fetchInventory(interaction.user.id);
 
   const foundCard = inv.getItems().find((e) => e.id === card.id);
   if (!foundCard)
@@ -938,7 +956,8 @@ const handleCard47 = (card: Item, db: any, interaction: CommandInteraction) => {
   card = foundCard;
 
   inv.setActiveItem(card);
-  helper.updateInventoryRef(inv, interaction.user);
+  inv.setUserId(interaction.user.id);
+  helper.updateInventoryRef(inv);
 
   return interaction.reply({
     embeds: [
@@ -956,8 +975,8 @@ const handleCard47 = (card: Item, db: any, interaction: CommandInteraction) => {
  * Balthazar
  * Reduce the cooldown of a chosen card by 3
  */
-const handleCard50 = (card: Item, db: any, interaction: CommandInteraction) => {
-  const inv = helper.getInventoryAsObject(interaction.user.id);
+const handleCard50 = async (card: Item, db: any, interaction: CommandInteraction) => {
+  const inv = await helper.fetchInventory(interaction.user.id);
   const balthazar = [...inv.getActiveItems(), ...inv.getItems()].find((e: any) => e.id === 50);
   if (balthazar && (balthazar.cardType as Cooldown).cooldown.current !== 0)
     return interaction.reply({
@@ -987,8 +1006,8 @@ const handleCard50 = (card: Item, db: any, interaction: CommandInteraction) => {
  * Treasure Hoard
  * +30% reward from the task (gold/gems)
  */
-const handleCard51 = (card: Item, db: any, interaction: CommandInteraction) => {
-  const inv = helper.getInventoryAsObject(interaction.user.id);
+const handleCard51 = async (card: Item, db: any, interaction: CommandInteraction) => {
+  const inv = await helper.fetchInventory(interaction.user.id);
 
   const foundCard = inv.getItems().find((e) => e.id === card.id);
   if (!foundCard)
@@ -998,7 +1017,8 @@ const handleCard51 = (card: Item, db: any, interaction: CommandInteraction) => {
   card = foundCard;
 
   inv.setActiveItem(card);
-  helper.updateInventoryRef(inv, interaction.user);
+  inv.setUserId(interaction.user.id);
+  helper.updateInventoryRef(inv);
 
   return interaction.reply({
     embeds: [
