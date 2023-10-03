@@ -1,10 +1,9 @@
-import fs from "node:fs";
 import * as Database from "../Database";
-import { BazaarStats } from "../types/DBTypes";
+import * as helper from "../ext/Helper";
 import Logger from "../ext/Logger";
 
 export const UpdateBazaarEnergy = async () => {
-  const userdata = JSON.parse(fs.readFileSync("./data/inventories.json", "utf-8"));
+  const userdata = await helper.fetchAllInventories();
 
   const db = Database.init();
   for (const user of userdata) {

@@ -3,14 +3,13 @@ import { PrefixCommand } from "./IPrefixCommand";
 import * as helper from "../ext/Helper";
 import Item from "../Classes/Item";
 import Pack from "../Classes/Pack";
-import fs from "node:fs";
 import axios from "axios";
 import Logger from "../ext/Logger";
 import * as Database from "../Database";
 import AccessValidator from "../Classes/AccessValidator";
 
-export const setitems: PrefixCommand = {
-  name: "setitems",
+export const test: PrefixCommand = {
+  name: "test",
   async execute(client: Client, message: Message) {
     if (!message.member) return;
 
@@ -21,7 +20,7 @@ export const setitems: PrefixCommand = {
     if (accessEntry.length === 0 || !new AccessValidator(accessEntry[0].level, "ADMIN").validate())
       return;
 
-    const inventories = JSON.parse(fs.readFileSync("./data/inventories.json", "utf-8"));
+    const inventories = await helper.fetchAllInventories();
 
     const xlsx = require("read-excel-file/node");
 
@@ -147,19 +146,37 @@ export const setitems: PrefixCommand = {
       helper.updatePackProperties(inventories, pack, { global: true });
     }
 
-    fs.writeFileSync("./data/droppool.json", JSON.stringify(packs, null, "\t"));
-    message.delete();
-    message.channel.send({
-      embeds: [
-        new EmbedBuilder()
-          .setTitle("New Item List")
-          .setColor("Green")
-          .setDescription(
-            `The Item List was successfully updated.\nIt now includes ${packs.length} packs for a total of ${totalItems} items.`
-          ),
-      ],
-    });
+    helper
+      .updatePacks(packs)
+      .then(() => {
+        message.delete();
+        message.channel.send({
+          embeds: [
+            new EmbedBuilder()
+              .setTitle("New Item List")
+              .setColor("Green")
+              .setDescription(
+                `The Item List was successfully updated.\nIt now includes ${packs.length} packs for a total of ${totalItems} items.`
+              ),
+          ],
+        });
 
-    Logger.log("success", "Successfully updated card data.");
+        Logger.log("success", "Successfully updated card data.");
+      })
+      .catch((e): unknown => {
+        console.error(e);
+
+        message.delete();
+        return message.channel.send({
+          embeds: [
+            new EmbedBuilder()
+              .setTitle("Error Parsing List")
+              .setColor("Red")
+              .setDescription(
+                `There has been an error syncing the new items with the Database: Please try again later or contact staff.`
+              ),
+          ],
+        });
+      });
   },
 };

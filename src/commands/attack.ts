@@ -87,8 +87,8 @@ export const attack: Command = {
         ephemeral: true,
       });
 
-    const ownInv = helper.getInventoryAsObject(interaction.user.id);
-    const targetInv = helper.getInventoryAsObject(targetUser.id);
+    const ownInv = await helper.fetchInventory(interaction.user.id);
+    const targetInv = await helper.fetchInventory(targetUser.id);
 
     const selfCooldownData = await db.query(`SELECT * FROM BazaarStats WHERE id=$1`, [
       interaction.user.id,

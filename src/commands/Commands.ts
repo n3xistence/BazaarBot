@@ -26,9 +26,11 @@ import { tradelist } from "./tradelist";
 import { use } from "./use";
 import { view } from "./view";
 import { access } from "./access";
+import { forcedailyreset } from "./forcedailyreset";
 
 export const Commands: Array<Command> = [
   info,
+  forcedailyreset,
   tradelist,
   task,
   use,

@@ -31,7 +31,7 @@ export const sell: Command = {
     let sellAmount = interaction.options.getNumber("amount");
     if (!sellAmount) sellAmount = 1;
 
-    let inv: Inventory = helper.getInventoryAsObject(interaction.user.id);
+    let inv: Inventory = await helper.fetchInventory(interaction.user.id);
 
     let hasMarket = [...inv.getActiveItems(), ...inv.getItems()].find((e) => e.id === 22);
     if (!hasMarket)
@@ -89,7 +89,7 @@ export const sell: Command = {
     }
 
     inv.removeItem(card, sellAmount);
-    helper.updateInventoryRef(inv, interaction.user);
+    helper.updateInventoryRef(inv);
     helper.updateCardsLiquidated(interaction.user, db, sellAmount);
 
     return interaction.reply({

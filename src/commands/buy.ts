@@ -4,6 +4,8 @@ import * as helper from "../ext/Helper";
 import * as Database from "../Database";
 import { Command } from "./ICommand";
 import Item from "../Classes/Item";
+import Pack from "../Classes/Pack";
+import Inventory from "../Classes/Inventory";
 
 const { EmbedBuilder } = require("discord.js");
 const fs = require("fs");
@@ -48,16 +50,17 @@ export const buy: Command = {
         ephemeral: true,
       });
 
-    let shopItems = JSON.parse(fs.readFileSync("./data/shop.json"));
+    let shopItems: Array<{ pid: string; gems: number; scrap: number }> =
+      await helper.fetchShopItems();
 
-    let item = shopItems.find((e: Item) => e.code === itemCode);
+    let item: any = shopItems.find((e: any) => e.pid === itemCode);
     if (!item)
       return interaction.reply({
         content: `There is no item with the ID \`${itemCode}\` in the shop.`,
         ephemeral: true,
       });
 
-    if (!Object.keys(item.cost).includes(currency))
+    if (!Object.keys(item).includes(currency))
       return interaction.reply({
         content: `You cannot buy an item with the ID \`${itemCode}\` with ${currency}.`,
         ephemeral: true,
@@ -73,39 +76,31 @@ export const buy: Command = {
       });
 
     balance = balance.rows[0][currency];
-    if (item.cost[currency] * amount > balance)
+    if (item[currency] * amount > balance)
       return interaction.reply({
         content: `You can not afford this item. (${balance}/${
-          item.cost[currency] * amount
+          item[currency] * amount
         } ${currency})`,
         ephemeral: true,
       });
 
-    let newBalance = balance - item.cost[currency] * amount;
+    let newBalance = balance - item[currency] * amount;
     db.query(`UPDATE currency SET ${currency}=$1 WHERE id=$2`, [newBalance, interaction.user.id]);
 
-    const inventories = JSON.parse(fs.readFileSync("./data/inventories.json"));
+    const droppool = await helper.fetchDroppool();
+    let cardPack = droppool.find((e: Pack) => e.code === item.pid);
+    if (!cardPack)
+      return interaction.reply({
+        content: `No Pack with the id ${item.code}`,
+        ephemeral: true,
+      });
 
-    const dropPool = JSON.parse(fs.readFileSync("./data/droppool.json"));
-    let cardPack = dropPool.find((e: Item) => e.code === item.code);
     cardPack.amount = amount;
 
-    const inv = helper.getInventoryAsObject(interaction.user.id);
+    const inv = await helper.fetchInventory(interaction.user.id);
     inv.addPack(cardPack);
-
-    helper.updateInventoryRef(inv, interaction.user);
-
-    const inventoryIndex = inventories.findIndex((e: any) => e.userId === interaction.user.id);
-
-    if (inventoryIndex < 0)
-      inventories.push({
-        userId: interaction.user.id,
-        userName: interaction.user.username,
-        inventory: inv,
-      });
-    else inventories[inventoryIndex].inventory = inv;
-
-    fs.writeFileSync("./data/inventories.json", JSON.stringify(inventories, null, "\t"));
+    inv.setUserId(interaction.user.id);
+    helper.updateInventoryRef(inv);
 
     return interaction.reply({
       embeds: [
@@ -113,7 +108,7 @@ export const buy: Command = {
           .setTitle(`Item${amount > 1 ? "s" : ""} Purchased`)
           .setColor("Green")
           .setDescription(
-            `${interaction.user} has successfully bought ${amount}x "${item.name}" ${
+            `${interaction.user} has successfully bought ${amount}x "${item.pid}" ${
               item.cardType ? "Card" : "Card Pack"
             }.`
           ),

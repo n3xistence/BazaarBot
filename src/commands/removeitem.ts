@@ -1,11 +1,11 @@
 import { Client, CommandInteraction } from "discord.js";
 import CommandOptions from "../enums/CommandOptions";
 import { Command } from "./ICommand";
-import Item from "../Classes/Item";
 import { EmbedBuilder } from "discord.js";
-import fs from "node:fs";
+import * as helper from "../ext/Helper";
 import * as Database from "../Database";
 import AccessValidator from "../Classes/AccessValidator";
+import Pack from "../Classes/Pack";
 
 export const removeitem: Command = {
   name: "removeitem",
@@ -32,25 +32,31 @@ export const removeitem: Command = {
       });
 
     let itemCode = interaction.options.getString("code");
-    let shopItems = JSON.parse(fs.readFileSync("./data/shop.json", "utf-8"));
-    const droppool = JSON.parse(fs.readFileSync("./data/droppool.json", "utf-8"));
+    if (!itemCode)
+      return interaction.reply({
+        content: "You need to provide an item code.",
+        ephemeral: true,
+      });
 
-    let itemInShop = shopItems.find((e: Item) => e.code === itemCode) !== undefined;
+    let shopItems: Array<{ pid: string; gems: number; scrap: number }> =
+      await helper.fetchShopItems();
+    const droppool = await helper.fetchDroppool();
+
+    let itemInShop = shopItems.find((e: any) => e.pid === itemCode) !== undefined;
     if (!itemInShop)
       return interaction.reply({
         content: `The item with the ID \`${itemCode}\` is not in the shop.`,
         ephemeral: true,
       });
 
-    let itemIndex = droppool.findIndex((e: Item) => e.code === itemCode);
+    let itemIndex = droppool.findIndex((e: Pack) => e.code === itemCode);
     if (itemIndex < 0)
       return interaction.reply({
         content: `There is no item with the ID \`${itemCode}\` in the droppool.`,
         ephemeral: true,
       });
 
-    shopItems.splice(itemIndex, 1);
-    fs.writeFileSync("./data/shop.json", JSON.stringify(shopItems, null, "\t"));
+    helper.removePackFromShop(itemCode);
 
     return interaction.reply({
       embeds: [

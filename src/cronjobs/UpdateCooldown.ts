@@ -1,19 +1,17 @@
-import fs from "node:fs";
 import Logger from "../ext/Logger";
 import Inventory from "../Classes/Inventory";
 import * as helper from "../ext/Helper";
 
-export const UpdateCooldown = () => {
+export const UpdateCooldown = async () => {
   try {
-    let inventories = JSON.parse(fs.readFileSync("./data/inventories.json", "utf-8"));
+    let inventories = await helper.fetchAllInventories();
 
     for (let i = 0; i < inventories.length; i++) {
-      let inv: Inventory = helper.getInventoryAsObject(inventories[i].userId);
+      let inv: Inventory = await helper.fetchInventory(inventories[i].userId as string);
       inv.moveTurn();
-      inventories[i].inventory = inv;
-    }
 
-    fs.writeFileSync("./data/inventories.json", JSON.stringify(inventories, null, "\t"));
+      helper.updateInventoryRef(inv);
+    }
 
     Logger.log("success", `Updated Cooldown for ${inventories.length} users.`);
   } catch (e) {

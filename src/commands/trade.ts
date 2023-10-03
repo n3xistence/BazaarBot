@@ -7,9 +7,9 @@ import {
   CommandInteraction,
   EmbedBuilder,
 } from "discord.js";
+import * as Database from "../Database";
 import * as helper from "../ext/Helper";
 import CommandOptions from "../enums/CommandOptions";
-import fs from "node:fs";
 
 const getConfirmationButtons = () => {
   return new ActionRowBuilder().addComponents(
@@ -40,84 +40,109 @@ export const trade: Command = {
     if (!interaction.isChatInputCommand()) return;
     if (!interaction.guild || !interaction.channel) return;
 
-    let inv = helper.getInventoryAsObject(interaction.user.id);
-    let hasPermission = [...inv.getItems(), ...inv.getActiveItems()].find((e) => e.id === 27);
-    if (!hasPermission)
-      return interaction.reply({
-        content: "You can only start trades when you own the card `Trade Pass`.",
-        ephemeral: true,
-      });
-
-    const targetUser = interaction.options.getUser("user");
-    if (!targetUser)
-      return interaction.reply({
-        content: `Please mention a valid user`,
-        ephemeral: true,
-      });
-
-    const row: any = getConfirmationButtons();
-    let embed = new EmbedBuilder()
-      .setTitle("Trade Offer")
-      .setColor("Blue")
-      .addFields(
-        {
-          name: `${interaction.user.username}:`,
-          value: `No Items Added`,
-          inline: true,
-        },
-        {
-          name: `${targetUser.username}:`,
-          value: `No Items Added`,
-          inline: true,
-        }
-      );
-
-    let allTrades = JSON.parse(fs.readFileSync("./data/trades.json", "utf-8"));
-    let tradeActive = allTrades.find(
-      (e: any) =>
-        (e.owner.id === interaction.user.id && e.target.id === targetUser.id) ||
-        (e.owner.id === targetUser.id && e.target.id === interaction.user.id)
-    );
-    if (tradeActive)
-      return interaction.reply({
-        embeds: [
-          new EmbedBuilder()
-            .setTitle("Trade Error")
-            .setColor("Red")
-            .setDescription(
-              `You already have a pending trade with ${targetUser} [here](${tradeActive.msg.link}).`
-            ),
-        ],
-        ephemeral: true,
-      });
-
-    let msg = await interaction.reply({
-      embeds: [embed],
-      components: [row],
-      fetchReply: true,
+    return interaction.reply({
+      content: `The trade feature is currently unavailable.`,
+      ephemeral: true,
     });
 
-    let tradeData = {
-      owner: {
-        id: interaction.user.id,
-        name: interaction.user.username,
-        accepted: false,
-        items: [],
-      },
-      target: {
-        id: targetUser.id,
-        name: targetUser.username,
-        accepted: false,
-        items: [],
-      },
-      timestamp: helper.getUNIXStamp(),
-      msg: {
-        id: msg.id,
-        link: `https://discord.com/channels/${interaction.guild.id}/${interaction.channel.id}/${msg.id}`,
-      },
-    };
+    // let inv = await helper.fetchInventory(interaction.user.id);
+    // let hasPermission = [...inv.getItems(), ...inv.getActiveItems()].find((e) => e.id === 27);
+    // if (!hasPermission)
+    //   return interaction.reply({
+    //     content: "You can only start trades when you own the card `Trade Pass`.",
+    //     ephemeral: true,
+    //   });
 
-    allTrades.push(tradeData);
-    return fs.writeFileSync("./data/trades.json", JSON.stringify(allTrades, null, "\t"));
+    // const targetUser = interaction.options.getUser("user");
+    // if (!targetUser || targetUser.id === interaction.user.id)
+    //   return interaction.reply({
+    //     content: `Please mention a valid user`,
+    //     ephemeral: true,
+    //   });
+
+    // const row: any = getConfirmationButtons();
+    // let embed = new EmbedBuilder()
+    //   .setTitle("Trade Offer")
+    //   .setColor("Blue")
+    //   .addFields(
+    //     {
+    //       name: `${interaction.user.username}:`,
+    //       value: `No Items Added`,
+    //       inline: true,
+    //     },
+    //     {
+    //       name: `${targetUser.username}:`,
+    //       value: `No Items Added`,
+    //       inline: true,
+    //     }
+    //   );
+
+    // const ownTradesQuery: string =
+    //   /*sql*/
+    //   `SELECT tr.msg_link, tr.owner_id, tr.target_id
+    //     FROM trade tr
+    //     LEFT JOIN trade_details td
+    //     ON td.trade_id = tr.id
+    //     WHERE tr.owner_id in (\'${interaction.user.id}\', \'${targetUser.id}\')
+    //     AND tr.target_id in (\'${interaction.user.id}\', \'${targetUser.id}\')
+    //   `;
+
+    // const db = Database.init();
+
+    // const { rows: tradeActive } = await db.query(ownTradesQuery);
+
+    // if (tradeActive.length > 0)
+    //   return interaction.reply({
+    //     embeds: [
+    //       new EmbedBuilder()
+    //         .setTitle("Trade Error")
+    //         .setColor("Red")
+    //         .setDescription(
+    //           `You already have a pending trade with ${targetUser} [here](${tradeActive[0].msg_link}).`
+    //         ),
+    //     ],
+    //     ephemeral: true,
+    //   });
+
+    // let msg = await interaction.reply({
+    //   embeds: [embed],
+    //   components: [row],
+    //   fetchReply: true,
+    // });
+
+    // let tradeData = {
+    //   owner: {
+    //     id: interaction.user.id,
+    //     name: interaction.user.username,
+    //     accepted: false,
+    //     items: [],
+    //   },
+    //   target: {
+    //     id: targetUser.id,
+    //     name: targetUser.username,
+    //     accepted: false,
+    //     items: [],
+    //   },
+    //   timestamp: helper.getUNIXStamp(),
+    //   msg: {
+    //     id: msg.id,
+    //     link: `https://discord.com/channels/${interaction.guild.id}/${interaction.channel.id}/${msg.id}`,
+    //   },
+    // };
+
+    // const insertTrade =
+    //   /* sql */
+    //   `
+    //     INSERT INTO trade (owner_id, target_id, timestamp, msg_id, msg_link)
+    //     VALUES(
+    //       \'${interaction.user.id}\',
+    //       \'${targetUser.id}\',
+    //       ${helper.getUNIXStamp()},
+    //       \'${tradeData.msg.id}\',
+    //       \'${tradeData.msg.link}\'
+    //     )
+    //   `;
+
+    // db.query(insertTrade);
   },
 };

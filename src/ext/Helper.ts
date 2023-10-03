@@ -22,7 +22,6 @@ import {
   TextInputStyle,
   User,
 } from "discord.js";
-import fs from "node:fs";
 
 const wrapInColor = (color: string, str: string): string => {
   const resetColor = "\x1b[0m";
@@ -45,6 +44,7 @@ const wrapInColor = (color: string, str: string): string => {
       clr = "\x1b[0m";
       break;
   }
+
   return `${clr}${str}${resetColor}`;
 };
 
@@ -155,32 +155,434 @@ const handlePostTaskCard = (card: Item, db: pg.Client, interaction: CommandInter
   }
 };
 
-const getInventoryAsObject = (userId: string) => {
-  const currentInventories = JSON.parse(fs.readFileSync("./data/inventories.json", "utf-8"));
+const makeInventoryLists = (list: Array<any>): Array<any> => {
+  const res: Array<any> = [];
 
-  let userObject = currentInventories.find(
-    (e: Inventory & { userId: string }) => e.userId === userId
-  );
-  return userObject ? new Inventory().fromJSON(userObject.inventory) : new Inventory();
-};
+  for (const entry of list) {
+    const index = res.findIndex((e) => e.userId === entry.userid);
 
-const updateInventoryRef = (inv: Inventory, user: User) => {
-  const currentInventories = JSON.parse(fs.readFileSync("./data/inventories.json", "utf-8"));
+    const itemStats = JSON.parse(JSON.stringify(entry));
+    delete itemStats.userid;
+    delete itemStats.pid;
+    delete itemStats.is_card;
 
-  let index = currentInventories.findIndex(
-    (e: Inventory & { userId: string }) => e.userId === user.id
-  );
-  if (index < 0) {
-    currentInventories.push({
-      userId: user.id,
-      userName: user.username,
-      inventory: inv,
-    });
-  } else {
-    currentInventories[index].inventory = inv;
+    if (index >= 0) {
+      res[index].items.push(itemStats);
+    } else {
+      res.push({
+        userId: entry.userid,
+        items: [itemStats],
+      });
+    }
   }
 
-  fs.writeFileSync("./data/inventories.json", JSON.stringify(currentInventories, null, "\t"));
+  return res;
+};
+
+const getInventoryAsObject = async (userId: string) => {
+  const currentInventories = await fetchAllInventories();
+
+  let userObject = currentInventories.find((e: Inventory) => e.userId === userId);
+  return userObject ? new Inventory().fromJSON(JSON.stringify(userObject)) : new Inventory();
+};
+
+const fetchAllInventories = async (): Promise<Array<Inventory>> => {
+  return new Promise(async (resolve, reject) => {
+    try {
+      const db = Database.init();
+      const { rows } = await db.query(
+        /* SQL */
+        `
+        SELECT 
+          dp.pid, dp.name, dp.cid id,
+          dp.code, inv.amount,
+          dp.rarity, dp.cardType,
+          dp.cooldown_max,
+          inv.cooldown_current,
+          dp.description, dp.target,
+          dp.usage, dp.effects, inv.active,
+          inv.is_card, inv.id userId,
+          ps.pid code, ps.pid name
+        FROM inventory inv
+        LEFT JOIN droppool dp
+        ON inv.cid = dp.cid AND inv.is_card = true
+        LEFT JOIN packstats ps
+        ON inv.pid = ps.pid AND inv.is_card = false
+        GROUP BY 
+          inv.id, dp.pid, dp.cid,
+          dp.name, dp.code, 
+          dp.cooldown_max,
+          inv.cooldown_current,
+          inv.amount, dp.rarity,
+          dp.cardType, dp.description, 
+          dp.target, dp.usage, ps.pid,
+          dp.effects, inv.active, inv.is_card
+        `
+      );
+
+      if (rows.length === 0) resolve([]);
+
+      const inventories: Array<Inventory> = [];
+      for (const invData of makeInventoryLists(rows)) {
+        let properties: Array<any> = invData.items.map((e: any) => ({
+          ...e,
+          cardType: e.cardtype,
+          effects: e.is_card ? JSON.parse(e.effects.replace(/\\/g, "")) : null,
+        }));
+        const inv = {
+          activeItems: properties.filter((e) => e.active && e.is_card),
+          list: properties.filter((e) => !e.active && e.is_card),
+          packs: properties
+            .filter((e) => !e.is_card && !e.is_card)
+            .map((e) => ({ code: e.code, name: e.name, amount: e.amount })),
+        };
+
+        const inventory: Inventory = new Inventory().fromJSON(JSON.stringify(inv));
+        inventory.setUserId(invData.userId);
+        inventories.push(inventory);
+      }
+
+      resolve(inventories);
+    } catch (e: any) {
+      reject(e);
+    }
+  });
+};
+
+const fetchInventory = async (userID: string): Promise<Inventory> => {
+  return new Promise(async (resolve, reject) => {
+    try {
+      const db = Database.init();
+      const { rows } = await db.query(
+        /* SQL */
+        `
+        SELECT 
+          dp.pid, dp.name, dp.cid id,
+          dp.code, inv.amount,
+          dp.rarity, dp.cardType,
+          dp.cooldown_max,
+          inv.cooldown_current,
+          dp.description, dp.target,
+          dp.usage, dp.effects, inv.active,
+          inv.is_card, inv.id userId,
+          ps.pid code, ps.pid name
+        FROM inventory inv
+        LEFT JOIN droppool dp
+        ON inv.cid = dp.cid AND inv.is_card = true
+        LEFT JOIN packstats ps
+        ON inv.pid = ps.pid AND inv.is_card = false
+        WHERE inv.id = '${userID}'
+        GROUP BY 
+          inv.id, dp.pid, dp.cid,
+          dp.name, dp.code, 
+          dp.cooldown_max,
+          inv.cooldown_current,
+          inv.amount, dp.rarity,
+          dp.cardType, dp.description, 
+          dp.target, dp.usage, ps.pid,
+          dp.effects, inv.active, inv.is_card
+        `
+      );
+
+      if (rows.length === 0) {
+        const inventory: Inventory = new Inventory();
+        inventory.userId = userID;
+        resolve(inventory);
+      }
+
+      let properties: Array<any> = rows.map((e) => ({
+        ...e,
+        cardType: e.cardtype,
+        effects: e.is_card ? JSON.parse(e.effects.replace(/\\/g, "")) : null,
+      }));
+
+      const inv = {
+        activeItems: properties.filter((e) => e.active && e.is_card),
+        list: properties.filter((e) => !e.active && e.is_card),
+        packs: properties
+          .filter((e) => !e.is_card && !e.is_card)
+          .map((e) => ({ code: e.code, name: e.name, amount: e.amount })),
+      };
+
+      const inventory: Inventory = new Inventory().fromJSON(JSON.stringify(inv));
+      inventory.setUserId(userID);
+      resolve(inventory);
+    } catch (e: any) {
+      reject(e);
+    }
+  });
+};
+
+const updateAllInventories = async (inventories: Array<Inventory>): Promise<any> => {
+  return new Promise(async (resolve, reject) => {
+    const db = Database.init();
+
+    await db.query(`DELETE FROM inventory`);
+
+    const allPromises: Array<Promise<any>> = [];
+    for (const inv of inventories) {
+      const { activeItems, list, packs } = inv;
+
+      for (const item of activeItems) {
+        allPromises.push(
+          db.query(
+            /* SQL */
+            `
+            INSERT INTO inventory(id, cid, pid, active, cooldown_current, amount, is_card)
+          VALUES(\'${inv.userId}\', ${item.id}, "'-1'", 'true', ${
+              !item.cardType || typeof item.cardType === "string"
+                ? null
+                : item.cardType.cooldown.current
+            }, ${item.amount} ,'true')
+          ON CONFLICT (id, pid, cid)
+          DO UPDATE SET amount=${item.amount}
+            `
+          )
+        );
+      }
+
+      for (const item of list) {
+        allPromises.push(
+          db.query(
+            /* SQL */
+            `
+            INSERT INTO inventory(id, cid, pid, active, cooldown_current, amount, is_card)
+          VALUES(\'${inv.userId}\', ${item.id}, "'-1'", 'false', ${
+              !item.cardType || typeof item.cardType === "string"
+                ? null
+                : item.cardType.cooldown.current
+            }, ${item.amount}, 'true')
+          ON CONFLICT (id, pid, cid)
+          DO UPDATE SET amount=${item.amount}
+            `
+          )
+        );
+      }
+
+      for (const pack of packs) {
+        allPromises.push(
+          db.query(
+            /* SQL */
+            `
+            INSERT INTO inventory(id, cid, pid, amount, is_card)
+          VALUES(
+            \'${inv.userId}\', -1, \'${pack.code}\', ${pack.amount}, 'false'
+          )
+          ON CONFLICT (id, pid, cid)
+          DO UPDATE SET amount=${pack.amount}
+            `
+          )
+        );
+      }
+    }
+
+    Promise.all(allPromises).then(resolve).catch(reject);
+  });
+};
+
+const updateInventoryRef = async (inventory: Inventory): Promise<any> => {
+  return new Promise(async (resolve, reject) => {
+    const db = Database.init();
+
+    const allPromises: Array<Promise<any>> = [];
+
+    // Create an array of tuples to be used in the query
+    const tuples: Array<any> = [
+      ...inventory.getActiveItems(),
+      ...inventory.getItems(),
+      ...inventory.getPacks(),
+    ].map((item: any) => `('${inventory.userId}', ${item.id ?? -1}, '${item.code ?? "-1"}')`);
+
+    if (tuples.length > 0) {
+      // Create the query
+      const query = `
+      DELETE FROM inventory
+      WHERE id=\'${inventory.userId}\' AND (id, cid, pid) NOT IN (${tuples.join(", ")})
+    `;
+
+      allPromises.push(db.query(query));
+    }
+
+    const { activeItems, list, packs } = inventory;
+
+    for (const item of activeItems) {
+      allPromises.push(
+        db.query(
+          /* SQL */
+          `
+          INSERT INTO inventory(id, cid, pid, active, cooldown_current, amount, is_card)
+          VALUES(\'${inventory.userId}\', ${item.id}, '-1', 'true', ${
+            !item.cardType || typeof item.cardType === "string"
+              ? null
+              : item.cardType.cooldown.current
+          }, ${item.amount} ,'true')
+          ON CONFLICT (id, pid, cid)
+          DO UPDATE SET amount=${item.amount}, cooldown_current=${
+            !item.cardType || typeof item.cardType === "string"
+              ? null
+              : item.cardType.cooldown.current
+          }
+          `
+        )
+      );
+    }
+
+    for (const item of list) {
+      allPromises.push(
+        db.query(
+          /* SQL */
+          `
+          INSERT INTO inventory(id, cid, pid, active, cooldown_current, amount, is_card)
+          VALUES(\'${inventory.userId}\', ${item.id}, '-1', 'false', ${
+            !item.cardType || typeof item.cardType === "string"
+              ? null
+              : item.cardType.cooldown.current
+          }, ${item.amount}, 'true')
+          ON CONFLICT (id, pid, cid)
+          DO UPDATE SET amount=${item.amount}, cooldown_current=${
+            !item.cardType || typeof item.cardType === "string"
+              ? null
+              : item.cardType.cooldown.current
+          }
+          `
+        )
+      );
+    }
+
+    for (const pack of packs) {
+      allPromises.push(
+        db.query(
+          /* SQL */
+          `
+          INSERT INTO inventory(id, cid, pid, amount, is_card)
+          VALUES(
+            \'${inventory.userId}\', -1, \'${pack.code}\', ${pack.amount}, 'false'
+          )
+          ON CONFLICT (id, pid, cid)
+          DO UPDATE SET amount=${pack.amount}
+          `
+        )
+      );
+    }
+
+    Promise.all(allPromises).then(resolve).catch(reject);
+  });
+};
+
+const makePacks = (list: Array<any>): Array<Pack> => {
+  const res: Array<Pack> = [];
+
+  for (const item of list) {
+    const newItem: ItemType = {
+      id: typeof item.id === "string" ? parseInt(item.id) : item.id,
+      name: item.name,
+      amount: item.amount,
+      rarity: item.rarity,
+      cardType:
+        item.cardtype.toLowerCase() === "cooldown"
+          ? { cooldown: { max: item.cooldown_max, current: 0 } }
+          : item.cardtype,
+      description: item.description,
+      target: item.target,
+      usage: item.usage,
+      effects: JSON.parse(item.effects.replace(/\\/g, "")),
+    };
+
+    let packFoundAt = res.findIndex((e) => e.code === item.pid);
+    if (packFoundAt >= 0) {
+      res[packFoundAt].items.push(new Item(newItem));
+    } else {
+      const newPack: Pack = {
+        name: item.pid,
+        code: item.pid,
+        cost: {
+          gems: item.gems,
+          scrap: item.scrap,
+        },
+        rarities: {
+          common: item.rarity_common,
+          rare: item.rarity_rare,
+          epic: item.rarity_epic,
+          legendary: item.rarity_legendary,
+          celestial: item.rarity_celestial,
+        },
+        items: [new Item(newItem as ItemType)],
+      };
+      res.push(newPack);
+    }
+  }
+
+  res.sort((a, b) => a.code.localeCompare(b.code));
+
+  return res;
+};
+
+const fetchDroppool = async (): Promise<Array<Pack>> => {
+  const droppoolQuery =
+    /* SQL */
+    `
+      SELECT 
+        p.pid,
+        ps.gems,
+        ps.scrap,
+        ps.rarity_common,
+        ps.rarity_rare,
+        ps.rarity_epic,
+        ps.rarity_legendary,
+        ps.rarity_celestial,
+        dp.*,
+        dp.cid id
+      FROM droppool dp
+      JOIN packs p ON dp.pid = p.pid
+      JOIN packstats ps ON p.pid = ps.pid
+      GROUP BY p.pid, ps.pid, 
+        ps.gems,
+        ps.scrap,
+        ps.rarity_common,
+        ps.rarity_rare,
+        ps.rarity_epic,
+        ps.rarity_legendary,
+        ps.rarity_celestial,
+        dp.pid,
+        dp.cid,
+        dp.name,
+        dp.code,
+        dp.amount,
+        dp.rarity,
+        dp.cardType,
+        dp.cooldown_max,
+        dp.description,
+        dp.target,
+        dp.usage,
+        dp.effects
+    `;
+
+  const db = Database.init();
+
+  const { rows: droppool } = await db.query(droppoolQuery);
+  if (droppool.length === 0) return [];
+
+  return makePacks(droppool);
+};
+
+const fetchShopItems = async (): Promise<Array<any>> => {
+  const query =
+    /* SQL */
+    `
+    SELECT 
+      ps.pid,
+      ps.gems,
+      ps.scrap
+    FROM shop s
+    JOIN packstats ps
+    ON s.pid=ps.pid
+  `;
+
+  const db = Database.init();
+
+  const { rows: items } = await db.query(query);
+
+  return items;
 };
 
 const updateTotalPacksOpened = async (user: User, db: pg.Client, amount: number = 1) => {
@@ -600,7 +1002,8 @@ const updateItemProperties = (inventories: Array<any>, item: ItemType, { global 
         if (typeof newItem.cardType !== "string") newItem.cardType.cooldown.current = 0;
       }
 
-      updateInventoryRef(inv, { id: entry.userId, username: entry.userName } as User);
+      inv.setUserId(entry.userId);
+      updateInventoryRef(inv);
     }
 
     let generalIndex = inv.getItems().findIndex((e) => e.id === item.id);
@@ -617,7 +1020,8 @@ const updateItemProperties = (inventories: Array<any>, item: ItemType, { global 
 
       if (inv.list[generalIndex].cardType === "passive") inv.setActiveItem(inv.list[generalIndex]);
 
-      updateInventoryRef(inv, { id: entry.userId, username: entry.userName } as User);
+      inv.setUserId(entry.userId);
+      updateInventoryRef(inv);
     }
   }
 };
@@ -636,9 +1040,127 @@ const updatePackProperties = (inventories: Array<any>, pack: Pack, { global = tr
 
       inv.packs[index].amount = oldPack.amount;
 
-      updateInventoryRef(inv, { id: entry.userId, username: entry.userName } as User);
+      inv.setUserId(entry.userId);
+      updateInventoryRef(inv);
     }
   }
+};
+
+const updatePacks = async (packs: Array<Pack>): Promise<void> => {
+  return new Promise(async (resolve, reject) => {
+    try {
+      const db = Database.init();
+      await db.query(`DELETE FROM droppool`);
+      await db.query(`DELETE FROM packstats`);
+      await db.query(`DELETE FROM packs`);
+
+      let packID = 1;
+      let itemID = 1;
+      for (const pack of packs) {
+        const packstats = {
+          pid: `'${pack.name.toLowerCase()}'`,
+          gems: pack.cost.gems,
+          scrap: pack.cost.scrap,
+          rarity_common: `'${pack.rarities.common}'`,
+          rarity_rare: `'${pack.rarities.rare}'`,
+          rarity_epic: `'${pack.rarities.epic}'`,
+          rarity_legendary: `'${pack.rarities.legendary}'`,
+          rarity_celestial: `'${pack.rarities.celestial}'`,
+        };
+
+        await db.query(
+          /* SQL */
+          `
+          INSERT INTO packstats
+          VALUES(${Object.values(packstats).join(",")})`
+        );
+
+        const { items } = pack;
+        const mappedItems = items.map(
+          (item, index) =>
+            `(${[
+              itemID + index,
+              `'${pack.name.toLowerCase()}'`,
+              `'${item.name.replace(/\'/g, "`")}'`,
+              `'${item.code}'`,
+              item.amount,
+              `'${item.rarity}'`,
+              `'${
+                !item.cardType || typeof item.cardType === "string"
+                  ? item.cardType
+                  : Object.keys(item.cardType)[0]
+              }'`,
+              !item.cardType || typeof item.cardType === "string" ? 0 : item.cardType.cooldown.max,
+              `'${item.description.replace(/\'/g, "\\'")}'`,
+              `'${item.target}'`,
+              `'${item.usage}'`,
+              `'${typeof item.effects === "string" ? item.effects : JSON.stringify(item.effects)}'`,
+            ]
+              .join(",")
+              .replace(/\"/g, '\\"')})`
+        );
+
+        await db.query(`INSERT INTO droppool VALUES${mappedItems.join(",")}`);
+
+        await db.query(
+          `INSERT INTO packs VALUES${items
+            .map((_, index) => `('${pack.name.toLowerCase()}', ${itemID + index})`)
+            .join(",")}`
+        );
+
+        itemID += items.length;
+        packID++;
+      }
+
+      resolve();
+    } catch (e: unknown) {
+      reject(e);
+    }
+  });
+};
+
+const addPackToShop = async (pid: string) => {
+  const db = Database.init();
+
+  await db.query(
+    /* SQL */
+    `
+      INSERT INTO shop
+      VALUES('${pid}')
+    `
+  );
+};
+
+const removePackFromShop = async (pid: string) => {
+  const db = Database.init();
+
+  await db.query(
+    /* SQL */
+    `
+      DELETE FROM shop
+      WHERE pid='${pid}'
+    `
+  );
+};
+
+const fetchTradeInfo = async (userID: string): Promise<Array<any>> => {
+  const ownTradesQuery: string =
+    /*sql*/
+    `SELECT 
+      dp.code, dp.name, tr.msg_link, 
+      tr.owner_id, tr.target_id, 
+      td.user_id, td.item_type, 
+      td.item_id, td.amount
+    FROM trade tr
+    LEFT JOIN trade_details td ON td.trade_id = tr.id 
+    JOIN droppool dp ON td.item_id = dp.cid
+    WHERE tr.owner_id = '${userID}'
+    OR tr.target_id = '${userID}'
+    `;
+  const db = Database.init();
+
+  let { rows: alltrades } = await db.query(ownTradesQuery);
+  return alltrades;
 };
 
 const confirm = async (
@@ -773,6 +1295,14 @@ const emoteBounties = "<:BB_Bounties:1027227602320097361>";
 const emoteHeart = "<:BB_Heart:1141096928747208795>";
 
 export {
+  fetchAllInventories,
+  fetchInventory,
+  updateAllInventories,
+  fetchDroppool,
+  fetchShopItems,
+  addPackToShop,
+  removePackFromShop,
+  fetchTradeInfo,
   wrapInColor,
   getUNIXStamp,
   confirm,
@@ -796,6 +1326,7 @@ export {
   updatePostCardUsed,
   updatePVPStats,
   updateTasksWon,
+  updatePacks,
   updateCardsLiquidated,
   getModalInput,
   updateItemProperties,

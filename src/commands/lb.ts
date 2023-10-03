@@ -93,7 +93,7 @@ const createEmbeds = (statLists: any) => {
   for (let i = 0; i < statLists.alltime.length; i++) {
     alltimePVPEmbed.addFields({
       name: `${i + 1}. ${statLists.alltime[i].name}`,
-      value: `${helper.emoteBazaar_PVP} ${statLists.alltime[i].monthly} points`,
+      value: `${helper.emoteBazaar_PVP} ${statLists.alltime[i].total} points`,
     });
   }
 
@@ -173,7 +173,7 @@ export const lb: Command = {
         const usr = await client.users.fetch(user.id).catch(() => {});
         if (!usr) continue;
 
-        const inv = helper.getInventoryAsObject(user.id);
+        const inv = await helper.fetchInventory(user.id);
         const pointData = await db.query(`SELECT * FROM currency WHERE id=$1`, [user.id]);
 
         const stats = JSON.parse(user.stats);
@@ -248,7 +248,7 @@ export const lb: Command = {
       }
 
       let { rows: alltimeRows } = await db.query(
-        `SELECT id,monthly FROM pvpdata ORDER BY monthly DESC LIMIT 10`
+        `SELECT id,total FROM pvpdata ORDER BY total DESC LIMIT 10`
       );
       for (const row of alltimeRows) {
         row.name = (

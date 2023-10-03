@@ -41,7 +41,7 @@ export const use: Command = {
     if (!interaction.isChatInputCommand()) return;
 
     let cardCode = interaction.options.getString("code");
-    let inv = helper.getInventoryAsObject(interaction.user.id);
+    let inv = await helper.fetchInventory(interaction.user.id);
 
     const db = Database.init();
     const activeCard = inv.getActiveItems().find((e) => e.code === cardCode);
@@ -82,7 +82,7 @@ export const use: Command = {
     if (isToggleCard) return helper.handleToggleCard(card, db, interaction);
 
     // Check Orphanage Card
-    let inventories = JSON.parse(fs.readFileSync("./data/inventories.json", "utf-8"));
+    let inventories = await helper.fetchAllInventories();
     const allActiveItems = getAllActiveItems(inventories);
     if (card.id === 38 && allActiveItems.some((e) => e.id === 38))
       return interaction.reply({
@@ -106,7 +106,7 @@ export const use: Command = {
           });
 
         inv.setActiveItem(card);
-        helper.updateInventoryRef(inv, interaction.user);
+        helper.updateInventoryRef(inv);
 
         const file = fs.existsSync(`./data/cards/${card.code}.png`)
           ? new AttachmentBuilder(`./data/cards/${card.code}.png`)

@@ -6,6 +6,7 @@ type Pack = {
   rarities: {
     common: string;
     rare: string;
+    epic: string;
     legendary: string;
     celestial: string;
   };

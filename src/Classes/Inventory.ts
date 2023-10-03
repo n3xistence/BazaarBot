@@ -3,6 +3,7 @@ import Pack from "./Pack";
 import { Cooldown } from "../types/";
 
 class Inventory {
+  userId?: string;
   activeItems: Item[] = [];
   list: Item[];
   packs: Pack[] = [];
@@ -19,6 +20,10 @@ class Inventory {
   }
   getPacks(): Array<Pack> {
     return this.packs;
+  }
+
+  setUserId(userId: string) {
+    this.userId = userId;
   }
 
   findByName(name: string) {
