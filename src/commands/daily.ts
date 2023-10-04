@@ -52,6 +52,8 @@ export const daily: Command = {
     const droppool = await helper.fetchDroppool();
     let inv = await helper.fetchInventory(interaction.user.id);
 
+    await interaction.deferReply();
+
     let dailyCardIDs = [23, 29, 35, 44];
     const dailyCards: Array<any> = dailyCardIDs.map((e) => {
       for (const pack of droppool) {
@@ -130,9 +132,8 @@ export const daily: Command = {
     const pvpClaimedState = await getPVPClaimedState(interaction.user, db);
 
     if (cardStrings.length === 0 && pvpClaimedState.monthly && pvpClaimedState.weekly)
-      return interaction.reply({
+      return interaction.editReply({
         embeds: [errorEmbed],
-        ephemeral: true,
       });
     else {
       const embed = new EmbedBuilder().setTitle("Daily Claimed").setColor("Green");
@@ -182,9 +183,9 @@ export const daily: Command = {
       }
 
       if (!embed.data.description && !embed.data.fields)
-        return interaction.reply({ embeds: [errorEmbed], ephemeral: true });
+        return interaction.editReply({ embeds: [errorEmbed] });
 
-      return interaction.reply({
+      return interaction.editReply({
         embeds: [embed],
       });
     }
