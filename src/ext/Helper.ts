@@ -190,59 +190,23 @@ const fetchAllInventories = async (): Promise<Array<Inventory>> => {
   return new Promise(async (resolve, reject) => {
     try {
       const db = Database.init();
-      const { rows } = await db.query(
+      let { rows } = await db.query(
         /* SQL */
         `
-        SELECT 
-          dp.pid, dp.name, dp.cid id,
-          dp.code, inv.amount,
-          dp.rarity, dp.cardType,
-          dp.cooldown_max,
-          inv.cooldown_current,
-          dp.description, dp.target,
-          dp.usage, dp.effects, inv.active,
-          inv.is_card, inv.id userId,
-          ps.pid code, ps.pid name
-        FROM inventory inv
-        LEFT JOIN droppool dp
-        ON inv.cid = dp.cid AND inv.is_card = true
-        LEFT JOIN packstats ps
-        ON inv.pid = ps.pid AND inv.is_card = false
-        GROUP BY 
-          inv.id, dp.pid, dp.cid,
-          dp.name, dp.code, 
-          dp.cooldown_max,
-          inv.cooldown_current,
-          inv.amount, dp.rarity,
-          dp.cardType, dp.description, 
-          dp.target, dp.usage, ps.pid,
-          dp.effects, inv.active, inv.is_card
+        SELECT id FROM inventory;
         `
       );
 
       if (rows.length === 0) resolve([]);
 
-      const inventories: Array<Inventory> = [];
-      for (const invData of makeInventoryLists(rows)) {
-        let properties: Array<any> = invData.items.map((e: any) => ({
-          ...e,
-          cardType: e.cardtype,
-          effects: e.is_card ? JSON.parse(e.effects.replace(/\\/g, "")) : null,
-        }));
-        const inv = {
-          activeItems: properties.filter((e) => e.active && e.is_card),
-          list: properties.filter((e) => !e.active && e.is_card),
-          packs: properties
-            .filter((e) => !e.is_card && !e.is_card)
-            .map((e) => ({ code: e.code, name: e.name, amount: e.amount })),
-        };
+      const users: Array<string> = [...new Set(...rows.map((e) => e.id))] as string[];
 
-        const inventory: Inventory = new Inventory().fromJSON(JSON.stringify(inv));
-        inventory.setUserId(invData.userId);
-        inventories.push(inventory);
+      const allPromises: Array<Promise<any>> = [];
+      for (const userID of users) {
+        allPromises.push(fetchInventory(userID));
       }
 
-      resolve(inventories);
+      resolve(await Promise.all(allPromises));
     } catch (e: any) {
       reject(e);
     }
@@ -317,11 +281,9 @@ const updateAllInventories = async (inventories: Array<Inventory>): Promise<any>
   return new Promise(async (resolve, reject) => {
     const db = Database.init();
 
-    await db.query(`DELETE FROM inventory`);
-
     const allPromises: Array<Promise<any>> = [];
-    for (const inv of inventories) {
-      const { activeItems, list, packs } = inv;
+    for (const inventory of inventories) {
+      const { activeItems, list, packs } = inventory;
 
       for (const item of activeItems) {
         allPromises.push(
@@ -329,13 +291,17 @@ const updateAllInventories = async (inventories: Array<Inventory>): Promise<any>
             /* SQL */
             `
             INSERT INTO inventory(id, cid, pid, active, cooldown_current, amount, is_card)
-          VALUES(\'${inv.userId}\', ${item.id}, "'-1'", 'true', ${
+            VALUES(\'${inventory.userId}\', ${item.id}, '-1', 'true', ${
               !item.cardType || typeof item.cardType === "string"
                 ? null
                 : item.cardType.cooldown.current
             }, ${item.amount} ,'true')
-          ON CONFLICT (id, pid, cid)
-          DO UPDATE SET amount=${item.amount}
+            ON CONFLICT (id, pid, cid)
+            DO UPDATE SET amount=${item.amount}, cooldown_current=${
+              !item.cardType || typeof item.cardType === "string"
+                ? null
+                : item.cardType.cooldown.current
+            }
             `
           )
         );
@@ -347,13 +313,17 @@ const updateAllInventories = async (inventories: Array<Inventory>): Promise<any>
             /* SQL */
             `
             INSERT INTO inventory(id, cid, pid, active, cooldown_current, amount, is_card)
-          VALUES(\'${inv.userId}\', ${item.id}, "'-1'", 'false', ${
+            VALUES(\'${inventory.userId}\', ${item.id}, '-1', 'false', ${
               !item.cardType || typeof item.cardType === "string"
                 ? null
                 : item.cardType.cooldown.current
             }, ${item.amount}, 'true')
-          ON CONFLICT (id, pid, cid)
-          DO UPDATE SET amount=${item.amount}
+            ON CONFLICT (id, pid, cid)
+            DO UPDATE SET amount=${item.amount}, cooldown_current=${
+              !item.cardType || typeof item.cardType === "string"
+                ? null
+                : item.cardType.cooldown.current
+            }
             `
           )
         );
@@ -365,11 +335,11 @@ const updateAllInventories = async (inventories: Array<Inventory>): Promise<any>
             /* SQL */
             `
             INSERT INTO inventory(id, cid, pid, amount, is_card)
-          VALUES(
-            \'${inv.userId}\', -1, \'${pack.code}\', ${pack.amount}, 'false'
-          )
-          ON CONFLICT (id, pid, cid)
-          DO UPDATE SET amount=${pack.amount}
+            VALUES(
+              \'${inventory.userId}\', -1, \'${pack.code ?? pack.name}\', ${pack.amount}, 'false'
+            )
+            ON CONFLICT (id, pid, cid)
+            DO UPDATE SET amount=${pack.amount}
             `
           )
         );
@@ -456,7 +426,7 @@ const updateInventoryRef = async (inventory: Inventory): Promise<any> => {
           `
           INSERT INTO inventory(id, cid, pid, amount, is_card)
           VALUES(
-            \'${inventory.userId}\', -1, \'${pack.code}\', ${pack.amount}, 'false'
+            \'${inventory.userId}\', -1, \'${pack.code ?? pack.name}\', ${pack.amount}, 'false'
           )
           ON CONFLICT (id, pid, cid)
           DO UPDATE SET amount=${pack.amount}
