@@ -18,6 +18,7 @@ const extractItemsFromInventory = (inv: Inventory) => {
 
 export const inventory: Command = {
   name: "inventory",
+  ephemeral: true,
   description: "Shows your inventory",
   options: [
     {
@@ -63,11 +64,10 @@ export const inventory: Command = {
       );
 
       if (items.length === 0)
-        return interaction.reply({
+        return interaction.editReply({
           content: `There are no cards for the following filters:\n${
             typeFilter ? `Type filter: ${typeFilter}\n` : ""
           }${rarityFilter ? `Rarity filter: ${rarityFilter}` : ""}`,
-          ephemeral: true,
         });
     }
     let balance = {

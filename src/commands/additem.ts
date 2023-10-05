@@ -8,6 +8,7 @@ import Pack from "../Classes/Pack";
 
 export const additem: Command = {
   name: "additem",
+  ephemeral: true,
   description: "Adds an item to the shop",
   options: [
     {
@@ -25,16 +26,14 @@ export const additem: Command = {
       interaction.user.id,
     ]);
     if (accessEntry.length === 0 || !new AccessValidator(accessEntry[0].level, "ADMIN").validate())
-      return interaction.reply({
+      return interaction.editReply({
         content: "Invalid Authorisation.",
-        ephemeral: true,
       });
 
     let itemCode = interaction.options.getString("code");
     if (!itemCode)
-      return interaction.reply({
+      return interaction.editReply({
         content: "You need to provide an item code.",
-        ephemeral: true,
       });
 
     let shopItems: Array<{ pid: string; gems: number; scrap: number }> =
@@ -44,21 +43,19 @@ export const additem: Command = {
 
     let itemInShop = shopItems.find((e: any) => e.pid === itemCode) !== undefined;
     if (itemInShop)
-      return interaction.reply({
+      return interaction.editReply({
         content: `The item with the ID \`${itemCode}\` is already in the shop.`,
-        ephemeral: true,
       });
 
     let item = droppool.find((e: Pack) => e.code === itemCode);
     if (!item)
-      return interaction.reply({
+      return interaction.editReply({
         content: `There is no item with the ID \`${itemCode}\` in the droppool.`,
-        ephemeral: true,
       });
 
     helper.addPackToShop(itemCode);
 
-    return interaction.reply({
+    return interaction.editReply({
       embeds: [
         new EmbedBuilder()
           .setTitle("Updated Shop")

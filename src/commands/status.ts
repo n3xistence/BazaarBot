@@ -7,6 +7,7 @@ import { PaginationOption } from "../types/PaginationOption";
 
 export const status: Command = {
   name: "status",
+  ephemeral: false,
   description: "Shows your active cards",
   options: [
     {

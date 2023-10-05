@@ -12,6 +12,7 @@ const fs = require("fs");
 
 export const buy: Command = {
   name: "buy",
+  ephemeral: false,
   description: "Buy an item",
   options: [
     {
@@ -45,9 +46,8 @@ export const buy: Command = {
 
     if (!amount) amount = 1;
     if (amount < 0)
-      return interaction.reply({
+      return interaction.editReply({
         content: `You cannot buy a negative amount of items.`,
-        ephemeral: true,
       });
 
     let shopItems: Array<{ pid: string; gems: number; scrap: number }> =
@@ -55,33 +55,29 @@ export const buy: Command = {
 
     let item: any = shopItems.find((e: any) => e.pid === itemCode);
     if (!item)
-      return interaction.reply({
+      return interaction.editReply({
         content: `There is no item with the ID \`${itemCode}\` in the shop.`,
-        ephemeral: true,
       });
 
     if (!Object.keys(item).includes(currency))
-      return interaction.reply({
+      return interaction.editReply({
         content: `You cannot buy an item with the ID \`${itemCode}\` with ${currency}.`,
-        ephemeral: true,
       });
 
     let balance: any = await db.query(`SELECT ${currency} FROM currency WHERE id=$1`, [
       interaction.user.id,
     ]);
     if (balance.rows.length === 0)
-      return interaction.reply({
-        content: `You have no points.`,
-        ephemeral: true,
+      return interaction.editReply({
+        content: `You can not afford this item.`,
       });
 
     balance = balance.rows[0][currency];
     if (item[currency] * amount > balance)
-      return interaction.reply({
+      return interaction.editReply({
         content: `You can not afford this item. (${balance}/${
           item[currency] * amount
         } ${currency})`,
-        ephemeral: true,
       });
 
     let newBalance = balance - item[currency] * amount;
@@ -90,9 +86,8 @@ export const buy: Command = {
     const droppool = await helper.fetchDroppool();
     let cardPack = droppool.find((e: Pack) => e.code === item.pid);
     if (!cardPack)
-      return interaction.reply({
+      return interaction.editReply({
         content: `No Pack with the id ${item.code}`,
-        ephemeral: true,
       });
 
     cardPack.amount = amount;
@@ -102,7 +97,7 @@ export const buy: Command = {
     inv.setUserId(interaction.user.id);
     helper.updateInventoryRef(inv);
 
-    return interaction.reply({
+    return interaction.editReply({
       embeds: [
         new EmbedBuilder()
           .setTitle(`Item${amount > 1 ? "s" : ""} Purchased`)

@@ -860,7 +860,22 @@ const getModalInput = (
       .setTitle(options.title ?? "Please submit your input")
       .addComponents(actionRow);
 
-    interaction.showModal(modal);
+    let row: any = new ActionRowBuilder().addComponents(
+      new ButtonBuilder()
+        .setCustomId("submit_userinput")
+        .setStyle(ButtonStyle.Primary)
+        .setLabel("Set Target")
+    );
+    interaction.editReply({
+      content: "Please provide a user to target (by id):",
+      components: [row as any],
+    });
+
+    const buttonListener = async (buttonInteraction: ButtonInteraction) => {
+      if (buttonInteraction.customId === "submit_userinput") {
+        buttonInteraction.showModal(modal);
+      }
+    };
 
     const listener = async (modalInteraction: ModalSubmitInteraction) => {
       if (!modalInteraction.isModalSubmit()) return;
@@ -869,15 +884,19 @@ const getModalInput = (
       const input = modalInteraction.fields.getTextInputValue("default_input_field");
 
       client.off("interactionCreate", listener as any);
+      client.off("interactionCreate", buttonListener as any);
+      (interaction as any).message?.delete();
 
       // Resolve the promise with the input value
       resolve({ input, interaction: modalInteraction } as any);
     };
 
     client.on("interactionCreate", listener as any);
+    client.on("interactionCreate", buttonListener as any);
     setTimeout(() => {
       try {
         client.off("interactionCreate", listener as any);
+        client.off("interactionCreate", buttonListener as any);
       } catch {}
       reject(new Error("Modal input timed out"));
     }, 60_000);

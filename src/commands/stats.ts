@@ -7,6 +7,7 @@ import { BazaarStats } from "../types/DBTypes";
 
 export const stats: Command = {
   name: "stats",
+  ephemeral: false,
   description: "Shows your Bazaar stats",
   options: [
     {
@@ -121,7 +122,7 @@ export const stats: Command = {
       .setColor("Orange")
       .setDescription(`${levelString}\n\n${strStats}\n\n${strUniqueCards}\n\n${strTotalCards}`);
 
-    return interaction.reply({
+    return interaction.editReply({
       embeds: [embed],
     });
   },

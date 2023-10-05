@@ -27,6 +27,7 @@ const getRewardImage = async (rewards: Array<Item>) => {
 
 export const open: Command = {
   name: "open",
+  ephemeral: false,
   description: "Open a card pack",
   options: [
     {
@@ -51,20 +52,18 @@ export const open: Command = {
       let packs = inv.getPacks();
       if (packs.length >= 1) invIndex = 0;
       else
-        return interaction.reply({
+        return interaction.editReply({
           content: packCode
             ? `You do not own a pack with the id \`${packCode}\``
             : `You do not own any card packs.`,
-          ephemeral: true,
         });
     }
     let dropPoolIndex = droppool.findIndex(
       (e: Pack) => e.code === (packCode ?? inv.getPacks()[0].code)
     );
     if (dropPoolIndex < 0)
-      return interaction.reply({
+      return interaction.editReply({
         content: `There is no pack with the id \`${packCode ?? inv.getPacks()[0].code}\``,
-        ephemeral: true,
       });
 
     const hasZimosCard =
@@ -72,7 +71,6 @@ export const open: Command = {
     const hasMortemCard =
       [...inv.getItems(), ...inv.getActiveItems()].find((e) => e.id === 48) !== undefined;
 
-    await interaction.deferReply();
     let cardPool = {
       common: {
         pool: droppool[dropPoolIndex].items.filter(

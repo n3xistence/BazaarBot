@@ -7,6 +7,7 @@ import { PaginationOption } from "../types/PaginationOption";
 
 export const help: Command = {
   name: "help",
+  ephemeral: false,
   description: "Shows help for command usage",
   async execute(client: Client, interaction: CommandInteraction) {
     const help = new EmbedBuilder()

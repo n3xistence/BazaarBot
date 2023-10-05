@@ -7,6 +7,7 @@ import { Currency } from "../types/DBTypes";
 
 export const scrap: Command = {
   name: "scrap",
+  ephemeral: false,
   description: "Turn a card into scrap",
   options: [
     {
@@ -35,15 +36,13 @@ export const scrap: Command = {
     let card = inv.getActiveItems().find((e) => e.code === cardCode);
     if (!card) card = inv.getItems().find((e) => e.code === cardCode);
     if (!card)
-      return interaction.reply({
+      return interaction.editReply({
         content: `You do not own this card.`,
-        ephemeral: true,
       });
 
     if (scrapAmount > card.amount)
-      return interaction.reply({
+      return interaction.editReply({
         content: `You cannot scrap more duplicates than you own.`,
-        ephemeral: true,
       });
 
     let scrapYield: number = 0;
@@ -83,7 +82,7 @@ export const scrap: Command = {
     helper.updateInventoryRef(inv);
     helper.updateCardsLiquidated(interaction.user, db, scrapAmount);
 
-    return interaction.reply({
+    return interaction.editReply({
       embeds: [
         new EmbedBuilder()
           .setTitle("Cards Scrapped")

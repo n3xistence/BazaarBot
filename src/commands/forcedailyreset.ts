@@ -8,6 +8,7 @@ import Inventory from "../Classes/Inventory";
 
 export const forcedailyreset: Command = {
   name: "forcedailyreset",
+  ephemeral: true,
   description: "Forces the daily reset",
   requiredLevel: "OWNER",
   async execute(client: Client, interaction: CommandInteraction) {
@@ -19,9 +20,8 @@ export const forcedailyreset: Command = {
       accessEntry.length === 0 ||
       !new AccessValidator(accessEntry[0].level, this.requiredLevel as string).validate()
     )
-      return interaction.reply({
+      return interaction.editReply({
         content: "Invalid Authorisation.",
-        ephemeral: true,
       });
 
     try {
@@ -37,7 +37,7 @@ export const forcedailyreset: Command = {
 
       Logger.log("success", `Updated Cooldown for ${inventories.length} users.`);
 
-      return interaction.reply({
+      return interaction.editReply({
         embeds: [
           new EmbedBuilder()
             .setColor("Green")
@@ -45,7 +45,6 @@ export const forcedailyreset: Command = {
               `${helper.emoteApprove} ${helper.separator} Successfully updated card cooldowns.`
             ),
         ],
-        ephemeral: true,
       });
     } catch (e) {
       Logger.log("error", "Error updating Cooldown:");
