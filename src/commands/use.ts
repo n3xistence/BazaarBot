@@ -28,6 +28,7 @@ const getAllActiveItems = (data: any) => {
 
 export const use: Command = {
   name: "use",
+  ephemeral: false,
   description: "Use a card",
   options: [
     {
@@ -49,28 +50,24 @@ export const use: Command = {
       return helper.handleToggleCard(activeCard, db, interaction);
 
     if (inv.getActiveItems().find((e) => e.code === cardCode))
-      return interaction.reply({
+      return interaction.editReply({
         content: `You have already equipped this card.`,
-        ephemeral: true,
       });
 
     let card = inv.getItems().find((e) => e.code === cardCode);
     if (!card)
-      return interaction.reply({
+      return interaction.editReply({
         content: `You do not own the card with the code \`${cardCode}\``,
-        ephemeral: true,
       });
 
     const currentTask = await db.query(`SELECT * FROM Bazaar WHERE active='true'`);
     if (currentTask.rows.length < 1 && card.usage === "post")
-      return interaction.reply({
+      return interaction.editReply({
         content: `This card can only be used while a task is active.`,
-        ephemeral: true,
       });
     if ((await helper.userUsedPostCard(interaction.user, db)) && card.usage === "post")
-      return interaction.reply({
+      return interaction.editReply({
         content: `You may only use one card per task.`,
-        ephemeral: true,
       });
 
     let isCustomCard = false;
@@ -85,9 +82,8 @@ export const use: Command = {
     let inventories = await helper.fetchAllInventories();
     const allActiveItems = getAllActiveItems(inventories);
     if (card.id === 38 && allActiveItems.some((e) => e.id === 38))
-      return interaction.reply({
+      return interaction.editReply({
         content: `Another player has already played \`${card.name}\`. Only one may be in play at a time.`,
-        ephemeral: true,
       });
 
     if (isCustomCard) {
@@ -96,13 +92,12 @@ export const use: Command = {
       if (card.usage === "pre") {
         let used = card.use();
         if (!used)
-          return interaction.reply({
+          return interaction.editReply({
             content: `Could not use card \`${
               card.name
             }\` because it's currently on cooldown.\nIt is on cooldown for ${
               (card as any).cardType.cooldown.current
             } more ${(card as any).cardType.cooldown.current > 1 ? "turns" : "turn"}.`,
-            ephemeral: true,
           });
 
         inv.setActiveItem(card);
@@ -112,7 +107,7 @@ export const use: Command = {
           ? new AttachmentBuilder(`./data/cards/${card.code}.png`)
           : new AttachmentBuilder(`./data/cards/template.png`);
 
-        return interaction.reply({
+        return interaction.editReply({
           embeds: [
             new EmbedBuilder()
               .setColor("Green")

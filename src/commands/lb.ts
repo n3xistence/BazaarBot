@@ -144,6 +144,7 @@ const createEmbeds = (statLists: any) => {
 
 export const lb: Command = {
   name: "lb",
+  ephemeral: false,
   description: "Shows the leaderboards",
   options: [
     {
@@ -158,12 +159,9 @@ export const lb: Command = {
 
     let type = interaction.options.getString("type");
     if (type)
-      return interaction.reply({
+      return interaction.editReply({
         content: "This feature is currently under construction.",
-        ephemeral: true,
       });
-
-    await interaction.deferReply();
 
     const db = Database.init();
     const userList = await db.query(`SELECT * FROM BazaarStats`);

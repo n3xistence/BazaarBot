@@ -6,6 +6,7 @@ import { PaginationOption } from "../types/PaginationOption";
 
 export const tradelist: Command = {
   name: "tradelist",
+  ephemeral: false,
   description: "Shows your current trades",
   async execute(client: Client, interaction: CommandInteraction) {
     const ownTradesQuery: string =
@@ -23,9 +24,8 @@ export const tradelist: Command = {
     const { rows: ownTrades } = await db.query(ownTradesQuery);
 
     if (ownTrades.length === 0)
-      return interaction.reply({
+      return interaction.editReply({
         content: "You do not have any active trades.",
-        ephemeral: true,
       });
 
     let ownTradesStrings = ownTrades.map(

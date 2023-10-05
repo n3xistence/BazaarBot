@@ -279,71 +279,9 @@ const fetchInventory = async (userID: string): Promise<Inventory> => {
 
 const updateAllInventories = async (inventories: Array<Inventory>): Promise<any> => {
   return new Promise(async (resolve, reject) => {
-    const db = Database.init();
-
     const allPromises: Array<Promise<any>> = [];
     for (const inventory of inventories) {
-      const { activeItems, list, packs } = inventory;
-
-      for (const item of activeItems) {
-        allPromises.push(
-          db.query(
-            /* SQL */
-            `
-            INSERT INTO inventory(id, cid, pid, active, cooldown_current, amount, is_card)
-            VALUES(\'${inventory.userId}\', ${item.id}, '-1', 'true', ${
-              !item.cardType || typeof item.cardType === "string"
-                ? null
-                : item.cardType.cooldown.current
-            }, ${item.amount} ,'true')
-            ON CONFLICT (id, pid, cid)
-            DO UPDATE SET amount=${item.amount}, cooldown_current=${
-              !item.cardType || typeof item.cardType === "string"
-                ? null
-                : item.cardType.cooldown.current
-            }
-            `
-          )
-        );
-      }
-
-      for (const item of list) {
-        allPromises.push(
-          db.query(
-            /* SQL */
-            `
-            INSERT INTO inventory(id, cid, pid, active, cooldown_current, amount, is_card)
-            VALUES(\'${inventory.userId}\', ${item.id}, '-1', 'false', ${
-              !item.cardType || typeof item.cardType === "string"
-                ? null
-                : item.cardType.cooldown.current
-            }, ${item.amount}, 'true')
-            ON CONFLICT (id, pid, cid)
-            DO UPDATE SET amount=${item.amount}, cooldown_current=${
-              !item.cardType || typeof item.cardType === "string"
-                ? null
-                : item.cardType.cooldown.current
-            }
-            `
-          )
-        );
-      }
-
-      for (const pack of packs) {
-        allPromises.push(
-          db.query(
-            /* SQL */
-            `
-            INSERT INTO inventory(id, cid, pid, amount, is_card)
-            VALUES(
-              \'${inventory.userId}\', -1, \'${pack.code ?? pack.name}\', ${pack.amount}, 'false'
-            )
-            ON CONFLICT (id, pid, cid)
-            DO UPDATE SET amount=${pack.amount}
-            `
-          )
-        );
-      }
+      allPromises.push(updateInventoryRef(inventory));
     }
 
     Promise.all(allPromises).then(resolve).catch(reject);
@@ -356,7 +294,6 @@ const updateInventoryRef = async (inventory: Inventory): Promise<any> => {
 
     const allPromises: Array<Promise<any>> = [];
 
-    // Create an array of tuples to be used in the query
     const tuples: Array<any> = [
       ...inventory.getActiveItems(),
       ...inventory.getItems(),
@@ -364,11 +301,13 @@ const updateInventoryRef = async (inventory: Inventory): Promise<any> => {
     ].map((item: any) => `('${inventory.userId}', ${item.id ?? -1}, '${item.code ?? "-1"}')`);
 
     if (tuples.length > 0) {
-      // Create the query
-      const query = `
-      DELETE FROM inventory
-      WHERE id=\'${inventory.userId}\' AND (id, cid, pid) NOT IN (${tuples.join(", ")})
-    `;
+      const query =
+        /* SQL */
+        `
+        DELETE FROM inventory
+        WHERE id=\'${inventory.userId}\' 
+        AND (id, cid, pid) NOT IN (${tuples.join(", ")})
+      `;
 
       allPromises.push(db.query(query));
     }
@@ -921,7 +860,22 @@ const getModalInput = (
       .setTitle(options.title ?? "Please submit your input")
       .addComponents(actionRow);
 
-    interaction.showModal(modal);
+    let row: any = new ActionRowBuilder().addComponents(
+      new ButtonBuilder()
+        .setCustomId("submit_userinput")
+        .setStyle(ButtonStyle.Primary)
+        .setLabel("Set Target")
+    );
+    interaction.editReply({
+      content: "Please provide a user to target (by id):",
+      components: [row as any],
+    });
+
+    const buttonListener = async (buttonInteraction: ButtonInteraction) => {
+      if (buttonInteraction.customId === "submit_userinput") {
+        buttonInteraction.showModal(modal);
+      }
+    };
 
     const listener = async (modalInteraction: ModalSubmitInteraction) => {
       if (!modalInteraction.isModalSubmit()) return;
@@ -930,15 +884,19 @@ const getModalInput = (
       const input = modalInteraction.fields.getTextInputValue("default_input_field");
 
       client.off("interactionCreate", listener as any);
+      client.off("interactionCreate", buttonListener as any);
+      (interaction as any).message?.delete();
 
       // Resolve the promise with the input value
       resolve({ input, interaction: modalInteraction } as any);
     };
 
     client.on("interactionCreate", listener as any);
+    client.on("interactionCreate", buttonListener as any);
     setTimeout(() => {
       try {
         client.off("interactionCreate", listener as any);
+        client.off("interactionCreate", buttonListener as any);
       } catch {}
       reject(new Error("Modal input timed out"));
     }, 60_000);

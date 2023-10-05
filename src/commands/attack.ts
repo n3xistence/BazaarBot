@@ -64,6 +64,7 @@ const sleep = (ms: number) =>
 
 export const attack: Command = {
   name: "attack",
+  ephemeral: false,
   description: "Attack another player",
   options: [
     {
@@ -77,14 +78,12 @@ export const attack: Command = {
     const db = Database.init();
     let targetUser = interaction.options.getUser("user");
     if (!targetUser || targetUser.id === interaction.user.id)
-      return interaction.reply({
+      return interaction.editReply({
         content: "Please mention a valid user.",
-        ephemeral: true,
       });
     if (targetUser.bot)
-      return interaction.reply({
+      return interaction.editReply({
         content: "This user is a bot and cannot participate in PVP.",
-        ephemeral: true,
       });
 
     const ownInv = await helper.fetchInventory(interaction.user.id);
@@ -95,9 +94,8 @@ export const attack: Command = {
     ]);
 
     if (selfCooldownData.rows.length > 0 && selfCooldownData.rows[0].energy <= 0)
-      return interaction.reply({
+      return interaction.editReply({
         content: `You don't have enough energy to do this. You will regain one energy point <t:${getUnixTimestampOfNextHalfHour()}:R>.`,
-        ephemeral: true,
       });
 
     if (
@@ -105,11 +103,10 @@ export const attack: Command = {
       JSON.parse(selfCooldownData.rows[0].battle_log).global &&
       helper.getUNIXStamp() < JSON.parse(selfCooldownData.rows[0].battle_log).global
     )
-      return interaction.reply({
+      return interaction.editReply({
         content: `You cannot enter combat at the moment. Try again <t:${
           JSON.parse(selfCooldownData.rows[0].battle_log).global
         }:R>`,
-        ephemeral: true,
       });
 
     const targetCooldownData = await db.query(`SELECT * FROM BazaarStats WHERE id=$1`, [
@@ -121,11 +118,10 @@ export const attack: Command = {
       JSON.parse(targetCooldownData.rows[0].battle_log).personal &&
       helper.getUNIXStamp() < JSON.parse(targetCooldownData.rows[0].battle_log).personal
     )
-      return interaction.reply({
+      return interaction.editReply({
         content: `You may not enter combat with ${targetUser}. Try again <t:${
           JSON.parse(targetCooldownData.rows[0].battle_log).personal
         }:R>`,
-        ephemeral: true,
       });
 
     let ownExp: any = await db.query(`SELECT * FROM BazaarStats WHERE id=$1`, [
@@ -154,7 +150,7 @@ export const attack: Command = {
       },
     };
 
-    await interaction.reply({
+    await interaction.editReply({
       embeds: [new EmbedBuilder().setDescription("Entering Battle...")],
     });
     while (players.attacker.hp > 0 && players.defender.hp > 0) {

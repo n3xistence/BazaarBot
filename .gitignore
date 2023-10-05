@@ -9,6 +9,8 @@
 # testing
 /coverage
 /test.js
+**/*.tmp.ts
+**/*.tmp.js
 
 # files that handle sql queries
 .sql

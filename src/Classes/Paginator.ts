@@ -88,12 +88,12 @@ class Paginator {
    */
   async paginate({ client, interaction, ephemeral }: PaginationOption) {
     if (this.embeds.length === 1)
-      return interaction.reply({
+      return interaction.editReply({
         embeds: [this.embeds[0]],
         ephemeral: ephemeral,
       });
 
-    let msg = await interaction.reply({
+    let msg = await interaction.editReply({
       embeds: [this.embeds[0]],
       components: [this.returnPaginationRow(0)],
       fetchReply: true,

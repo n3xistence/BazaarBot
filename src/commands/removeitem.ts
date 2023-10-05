@@ -9,6 +9,7 @@ import Pack from "../Classes/Pack";
 
 export const removeitem: Command = {
   name: "removeitem",
+  ephemeral: true,
   description: "Removes an item from the shop",
   options: [
     {
@@ -26,16 +27,14 @@ export const removeitem: Command = {
       interaction.user.id,
     ]);
     if (accessEntry.length === 0 || !new AccessValidator(accessEntry[0].level, "ADMIN").validate())
-      return interaction.reply({
+      return interaction.editReply({
         content: "Invalid Authorisation.",
-        ephemeral: true,
       });
 
     let itemCode = interaction.options.getString("code");
     if (!itemCode)
-      return interaction.reply({
+      return interaction.editReply({
         content: "You need to provide an item code.",
-        ephemeral: true,
       });
 
     let shopItems: Array<{ pid: string; gems: number; scrap: number }> =
@@ -44,21 +43,19 @@ export const removeitem: Command = {
 
     let itemInShop = shopItems.find((e: any) => e.pid === itemCode) !== undefined;
     if (!itemInShop)
-      return interaction.reply({
+      return interaction.editReply({
         content: `The item with the ID \`${itemCode}\` is not in the shop.`,
-        ephemeral: true,
       });
 
     let itemIndex = droppool.findIndex((e: Pack) => e.code === itemCode);
     if (itemIndex < 0)
-      return interaction.reply({
+      return interaction.editReply({
         content: `There is no item with the ID \`${itemCode}\` in the droppool.`,
-        ephemeral: true,
       });
 
     helper.removePackFromShop(itemCode);
 
-    return interaction.reply({
+    return interaction.editReply({
       embeds: [
         new EmbedBuilder()
           .setTitle("Updated Shop")

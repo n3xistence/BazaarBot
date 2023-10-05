@@ -5,6 +5,7 @@ import * as helper from "../ext/Helper";
 
 export const merchant: Command = {
   name: "merchant",
+  ephemeral: false,
   description: "Shows the merchant",
   options: [
     {
@@ -18,9 +19,8 @@ export const merchant: Command = {
     const inv = await helper.fetchInventory(interaction.user.id);
     let hasMerchant = [...inv.getActiveItems(), ...inv.getItems()].find((e) => e.id === 22);
     if (!hasMerchant)
-      return interaction.reply({
+      return interaction.editReply({
         content: `You must own the card \`Merchant\` to use this command.`,
-        ephemeral: true,
       });
 
     const price = {
@@ -31,7 +31,7 @@ export const merchant: Command = {
       celestial: 100,
     } as const;
 
-    return interaction.reply({
+    return interaction.editReply({
       embeds: [
         new EmbedBuilder()
           .setTitle("Merchant")

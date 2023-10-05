@@ -10,6 +10,7 @@ const getEmote = (e: [string, unknown]) => {
 
 export const shop: Command = {
   name: "shop",
+  ephemeral: false,
   description: "Shows all items in the shop",
   async execute(client: Client, interaction: CommandInteraction) {
     const products: Array<{ pid: string; gems: number; scrap: number }> =

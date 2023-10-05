@@ -1,4 +1,4 @@
-import { Client, CommandInteraction } from "discord.js";
+import { ButtonBuilder, ButtonStyle, Client, CommandInteraction } from "discord.js";
 import Inventory from "./Inventory";
 import Item from "./Item";
 import { Cooldown } from "../types";
@@ -32,7 +32,7 @@ const handleCard23 = async (card: Item, db: any, interaction: CommandInteraction
   const inv = await helper.fetchInventory(interaction.user.id);
   const foundCard = inv.getItems().find((e) => e.id === card.id);
   if (!foundCard)
-    return interaction.reply({
+    return interaction.editReply({
       content: `You do not own the card \`${card.name}\`.`,
     });
   card = foundCard;
@@ -70,7 +70,7 @@ const handleCard24 = async (card: Item, db: any, interaction: CommandInteraction
 
   const foundCard = inv.getItems().find((e) => e.id === card.id);
   if (!foundCard)
-    return interaction.reply({
+    return interaction.editReply({
       content: `You do not own the card \`${card.name}\`.`,
     });
   card = foundCard;
@@ -79,7 +79,7 @@ const handleCard24 = async (card: Item, db: any, interaction: CommandInteraction
   inv.setUserId(interaction.user.id);
   helper.updateInventoryRef(inv);
 
-  return interaction.reply({
+  return interaction.editReply({
     embeds: [
       new EmbedBuilder()
         .setColor("Green")
@@ -97,15 +97,14 @@ const handleCard24 = async (card: Item, db: any, interaction: CommandInteraction
  */
 const handleCard25 = async (card: Item, db: any, interaction: CommandInteraction) => {
   if (card.amount < 25)
-    return interaction.reply({
+    return interaction.editReply({
       content: `You can only use this card if you have 25 duplicates.\nYou currently own ${card.amount} duplicates.`,
-      ephemeral: true,
     });
 
   let inv = await helper.fetchInventory(interaction.user.id);
   const foundCard = inv.getItems().find((e) => e.id === card.id);
   if (!foundCard)
-    return interaction.reply({
+    return interaction.editReply({
       content: `You do not own the card \`${card.name}\`.`,
     });
   card = foundCard;
@@ -122,7 +121,7 @@ const handleCard25 = async (card: Item, db: any, interaction: CommandInteraction
   inv.setUserId(interaction.user.id);
   helper.updateInventoryRef(inv);
 
-  interaction.reply({
+  interaction.editReply({
     embeds: [
       new EmbedBuilder()
         .setTitle("Card Used")
@@ -146,7 +145,7 @@ const toggleCard28 = async (card: Item, db: any, interaction: CommandInteraction
 
   const foundCard = [...inv.getActiveItems(), ...inv.getItems()].find((e) => e.id === card.id);
   if (!foundCard)
-    return interaction.reply({
+    return interaction.editReply({
       content: `You do not own the card \`${card.name}\`.`,
     });
   card = foundCard;
@@ -155,7 +154,7 @@ const toggleCard28 = async (card: Item, db: any, interaction: CommandInteraction
   inv.setUserId(interaction.user.id);
   helper.updateInventoryRef(inv);
 
-  return interaction.reply({
+  return interaction.editReply({
     embeds: [
       new EmbedBuilder()
         .setColor("Green")
@@ -179,7 +178,7 @@ const handleCard29 = async (card: Item, db: any, interaction: CommandInteraction
 
   const foundCard = inv.getItems().find((e) => e.id === card.id);
   if (!foundCard)
-    return interaction.reply({
+    return interaction.editReply({
       content: `You do not own the card \`${card.name}\`.`,
     });
   card = foundCard;
@@ -219,19 +218,18 @@ const handleCard30 = async (
   const inv = await helper.fetchInventory(interaction.user.id);
   const foundCard = inv.getItems().find((e) => e.id === card.id);
   if (!foundCard)
-    return interaction.reply({
+    return interaction.editReply({
       content: `You do not own the card \`${card.name}\`.`,
     });
   card = foundCard;
 
   if ((card.cardType as Cooldown).cooldown?.current > 0)
-    return interaction.reply({
+    return interaction.editReply({
       content: `Could not use card \`${
         card.name
       }\` because it's currently on cooldown.\nIt is on cooldown for ${
         (card.cardType as Cooldown).cooldown.current
       } more ${(card.cardType as Cooldown).cooldown.current > 1 ? "turns" : "turn"}.`,
-      ephemeral: true,
     });
 
   let { input, interaction: newInteraction } = await helper.getModalInput(client, interaction, {
@@ -257,6 +255,7 @@ const handleCard30 = async (
     });
 
   card.targetUser = user;
+  card.resetCooldown();
   inv.setActiveItem(card);
   inv.setUserId(interaction.user.id);
   helper.updateInventoryRef(inv);
@@ -280,7 +279,9 @@ const handleCard30 = async (
  * Removes dubuffs from target player
  */
 const handleCard31 = (card: Item, db: any, interaction: CommandInteraction) => {
-  return interaction.reply(`Card Interaction for \`${card.name}\` has not been implemented yet.`);
+  return interaction.editReply(
+    `Card Interaction for \`${card.name}\` has not been implemented yet.`
+  );
 };
 
 /**
@@ -292,19 +293,18 @@ const handleCard32 = async (card: Item, db: any, interaction: CommandInteraction
   const scrapCost = 3;
 
   if ((card.cardType as Cooldown).cooldown?.current > 0)
-    return interaction.reply({
+    return interaction.editReply({
       content: `Could not use card \`${
         card.name
       }\` because it's currently on cooldown.\nIt is on cooldown for ${
         (card.cardType as Cooldown).cooldown.current
       } more ${(card.cardType as Cooldown).cooldown.current > 1 ? "turns" : "turn"}.`,
-      ephemeral: true,
     });
 
   const inv = await helper.fetchInventory(interaction.user.id);
   const foundCard = inv.getItems().find((e) => e.id === card.id);
   if (!foundCard)
-    return interaction.reply({
+    return interaction.editReply({
       content: `You do not own the card \`${card.name}\`.`,
     });
   card = foundCard;
@@ -312,16 +312,14 @@ const handleCard32 = async (card: Item, db: any, interaction: CommandInteraction
   let query = `SELECT scrap FROM currency WHERE id=$1`;
   let balance = await db.query(query, [interaction.user.id]);
   if (balance.rows.length === 0)
-    return interaction.reply({
+    return interaction.editReply({
       content: `You have no points.`,
-      ephemeral: true,
     });
 
   const { scrap } = balance.rows[0];
   if (scrap < scrapCost)
-    return interaction.reply({
+    return interaction.editReply({
       content: `You can not afford this item. You only have ${scrap} scrap.`,
-      ephemeral: true,
     });
 
   let newBalance = scrap - scrapCost;
@@ -365,7 +363,7 @@ const handleCard32 = async (card: Item, db: any, interaction: CommandInteraction
   inv.setUserId(interaction.user.id);
   helper.updateInventoryRef(inv);
 
-  return interaction.reply({
+  return interaction.editReply({
     embeds: [
       new EmbedBuilder()
         .setTitle("Card Used")
@@ -388,19 +386,18 @@ const handleCard33 = async (card: Item, db: any, interaction: CommandInteraction
   const inv = await helper.fetchInventory(interaction.user.id);
   const foundCard = inv.getItems().find((e) => e.id === card.id);
   if (!foundCard)
-    return interaction.reply({
+    return interaction.editReply({
       content: `You do not own the card \`${card.name}\`.`,
     });
   card = foundCard;
 
   if ((card.cardType as Cooldown).cooldown?.current > 0)
-    return interaction.reply({
+    return interaction.editReply({
       content: `Could not use card \`${
         card.name
       }\` because it's currently on cooldown.\nIt is on cooldown for ${
         (card.cardType as Cooldown).cooldown.current
       } more ${(card.cardType as Cooldown).cooldown.current > 1 ? "turns" : "turn"}.`,
-      ephemeral: true,
     });
 
   const droppool = await helper.fetchDroppool();
@@ -447,7 +444,7 @@ const handleCard33 = async (card: Item, db: any, interaction: CommandInteraction
   helper.updateInventoryRef(inv);
   helper.updateTotalEXP(interaction, db, 1, expAmount);
 
-  return interaction.reply({
+  return interaction.editReply({
     embeds: [
       new EmbedBuilder()
         .setTitle("Card Used")
@@ -469,26 +466,25 @@ const handleCard34 = async (card: Item, db: any, interaction: CommandInteraction
 
   const foundCard = inv.getItems().find((e) => e.id === card.id);
   if (!foundCard)
-    return interaction.reply({
+    return interaction.editReply({
       content: `You do not own the card \`${card.name}\`.`,
     });
   card = foundCard;
 
   if ((card.cardType as Cooldown).cooldown?.current > 0)
-    return interaction.reply({
+    return interaction.editReply({
       content: `Could not use card \`${
         card.name
       }\` because it's currently on cooldown.\nIt is on cooldown for ${
         (card.cardType as Cooldown).cooldown.current
       } more ${(card.cardType as Cooldown).cooldown.current > 1 ? "turns" : "turn"}.`,
-      ephemeral: true,
     });
 
   card.resetCooldown();
   inv.setUserId(interaction.user.id);
   helper.updateInventoryRef(inv);
 
-  return interaction.reply({
+  return interaction.editReply({
     embeds: [
       new EmbedBuilder()
         .setTitle("Card Used")
@@ -508,7 +504,7 @@ const handleCard35 = async (card: Item, db: any, interaction: CommandInteraction
   const inv = await helper.fetchInventory(interaction.user.id);
   const foundCard = inv.getItems().find((e) => e.id === card.id);
   if (!foundCard)
-    return interaction.reply({
+    return interaction.editReply({
       content: `You do not own the card \`${card.name}\`.`,
     });
   card = foundCard;
@@ -570,7 +566,7 @@ const handleCard36 = async (card: Item, db: any, interaction: CommandInteraction
 
   const foundCard = inv.getItems().find((e) => e.id === card.id);
   if (!foundCard)
-    return interaction.reply({
+    return interaction.editReply({
       content: `You do not own the card \`${card.name}\`.`,
     });
   card = foundCard;
@@ -579,7 +575,7 @@ const handleCard36 = async (card: Item, db: any, interaction: CommandInteraction
   inv.setUserId(interaction.user.id);
   helper.updateInventoryRef(inv);
 
-  return interaction.reply({
+  return interaction.editReply({
     embeds: [
       new EmbedBuilder()
         .setColor("Green")
@@ -600,7 +596,7 @@ const handleCard38 = async (card: Item, db: any, interaction: CommandInteraction
 
   const foundCard = inv.getItems().find((e) => e.id === card.id);
   if (!foundCard)
-    return interaction.reply({
+    return interaction.editReply({
       content: `You do not own the card \`${card.name}\`.`,
     });
   card = foundCard;
@@ -609,7 +605,7 @@ const handleCard38 = async (card: Item, db: any, interaction: CommandInteraction
   inv.setUserId(interaction.user.id);
   helper.updateInventoryRef(inv);
 
-  return interaction.reply({
+  return interaction.editReply({
     embeds: [
       new EmbedBuilder()
         .setColor("Green")
@@ -635,7 +631,7 @@ const handleCard37 = async (card: Item, db: any, interaction: CommandInteraction
   let inv = await helper.fetchInventory(interaction.user.id);
   const foundCard = inv.getItems().find((e) => e.id === card.id);
   if (!foundCard)
-    return interaction.reply({
+    return interaction.editReply({
       content: `You do not own the card \`${card.name}\`.`,
     });
   card = foundCard;
@@ -649,7 +645,7 @@ const handleCard37 = async (card: Item, db: any, interaction: CommandInteraction
     const query = `UPDATE currency SET gems=$1 WHERE id=$2`;
     db.query(query, [gems, interaction.user.id]);
 
-    interaction.reply({
+    interaction.editReply({
       embeds: [
         new EmbedBuilder()
           .setColor("Green")
@@ -667,7 +663,7 @@ const handleCard37 = async (card: Item, db: any, interaction: CommandInteraction
     const query = `INSERT INTO currency VALUES($1,$2,$3,$4)`;
     db.query(query, [interaction.user.id, 0, gems, 0]);
 
-    interaction.reply({
+    interaction.editReply({
       embeds: [
         new EmbedBuilder()
           .setColor("Green")
@@ -696,7 +692,7 @@ const handleCard39 = async (card: Item, db: any, interaction: CommandInteraction
   let inv = await helper.fetchInventory(interaction.user.id);
   const foundCard = inv.getItems().find((e) => e.id === card.id);
   if (!foundCard)
-    return interaction.reply({
+    return interaction.editReply({
       content: `You do not own the card \`${card.name}\`.`,
     });
   card = foundCard;
@@ -715,7 +711,7 @@ const handleCard39 = async (card: Item, db: any, interaction: CommandInteraction
     inv.setUserId(interaction.user.id);
     helper.updateInventoryRef(inv);
 
-    interaction.reply({
+    interaction.editReply({
       embeds: [
         new EmbedBuilder()
           .setTitle("Card Used")
@@ -737,7 +733,7 @@ const handleCard39 = async (card: Item, db: any, interaction: CommandInteraction
     inv.setUserId(interaction.user.id);
     helper.updateInventoryRef(inv);
 
-    interaction.reply({
+    interaction.editReply({
       embeds: [
         new EmbedBuilder()
           .setTitle("Card Used")
@@ -761,7 +757,7 @@ const toggleCard40 = async (card: Item, db: any, interaction: CommandInteraction
   const inv = await helper.fetchInventory(interaction.user.id);
   const foundCard = [...inv.getItems(), ...inv.getActiveItems()].find((e) => e.id === card.id);
   if (!foundCard)
-    return interaction.reply({
+    return interaction.editReply({
       content: `You do not own the card \`${card.name}\`.`,
     });
   card = foundCard;
@@ -773,7 +769,7 @@ const toggleCard40 = async (card: Item, db: any, interaction: CommandInteraction
   inv.setUserId(interaction.user.id);
   helper.updateInventoryRef(inv);
 
-  return interaction.reply({
+  return interaction.editReply({
     embeds: [
       new EmbedBuilder()
         .setColor("Green")
@@ -797,7 +793,7 @@ const handleCard44 = async (card: Item, db: any, interaction: CommandInteraction
   const inv = await helper.fetchInventory(interaction.user.id);
   const foundCard = inv.getItems().find((e) => e.id === card.id);
   if (!foundCard)
-    return interaction.reply({
+    return interaction.editReply({
       content: `You do not own the card \`${card.name}\`.`,
     });
   card = foundCard;
@@ -834,13 +830,12 @@ const handleCard45 = async (card: Item, db: any, interaction: CommandInteraction
   const allItems = [...inv.getItems()];
 
   if ((card.cardType as Cooldown).cooldown?.current > 0)
-    return interaction.reply({
+    return interaction.editReply({
       content: `Could not use card \`${
         card.name
       }\` because it's currently on cooldown.\nIt is on cooldown for ${
         (card.cardType as Cooldown).cooldown.current
       } more ${(card.cardType as Cooldown).cooldown.current > 1 ? "turns" : "turn"}.`,
-      ephemeral: true,
     });
 
   const dailyCard = [23, 29, 35, 44];
@@ -852,7 +847,7 @@ const handleCard45 = async (card: Item, db: any, interaction: CommandInteraction
 
   const foundCard = inv.getItems().find((e) => e.id === card.id);
   if (!foundCard)
-    return interaction.reply({
+    return interaction.editReply({
       content: `You do not own the card \`${card.name}\`.`,
     });
 
@@ -860,7 +855,7 @@ const handleCard45 = async (card: Item, db: any, interaction: CommandInteraction
   inv.setUserId(interaction.user.id);
   helper.updateInventoryRef(inv);
 
-  return interaction.reply({
+  return interaction.editReply({
     embeds: [
       new EmbedBuilder()
         .setTitle("Card Used")
@@ -886,19 +881,18 @@ const handleCard46 = async (
 
   const foundCard = inv.getItems().find((e) => e.id === card.id);
   if (!foundCard)
-    return interaction.reply({
+    return interaction.editReply({
       content: `You do not own the card \`${cardName}\`.`,
     });
   card = foundCard;
 
   if ((card.cardType as Cooldown).cooldown?.current > 0)
-    return interaction.reply({
+    return interaction.editReply({
       content: `Could not use card \`${
         card.name
       }\` because it's currently on cooldown.\nIt is on cooldown for ${
         (card.cardType as Cooldown).cooldown.current
       } more ${(card.cardType as Cooldown).cooldown.current > 1 ? "turns" : "turn"}.`,
-      ephemeral: true,
     });
 
   let { input, interaction: newInteraction } = await helper.getModalInput(client, interaction, {
@@ -924,6 +918,7 @@ const handleCard46 = async (
     });
 
   card.targetUser = user;
+  card.resetCooldown();
   inv.setActiveItem(card);
   inv.setUserId(interaction.user.id);
   helper.updateInventoryRef(inv);
@@ -950,7 +945,7 @@ const handleCard47 = async (card: Item, db: any, interaction: CommandInteraction
 
   const foundCard = inv.getItems().find((e) => e.id === card.id);
   if (!foundCard)
-    return interaction.reply({
+    return interaction.editReply({
       content: `You do not own the card \`${card.name}\`.`,
     });
   card = foundCard;
@@ -959,7 +954,7 @@ const handleCard47 = async (card: Item, db: any, interaction: CommandInteraction
   inv.setUserId(interaction.user.id);
   helper.updateInventoryRef(inv);
 
-  return interaction.reply({
+  return interaction.editReply({
     embeds: [
       new EmbedBuilder()
         .setColor("Green")
@@ -979,26 +974,23 @@ const handleCard50 = async (card: Item, db: any, interaction: CommandInteraction
   const inv = await helper.fetchInventory(interaction.user.id);
   const balthazar = [...inv.getActiveItems(), ...inv.getItems()].find((e: any) => e.id === 50);
   if (balthazar && (balthazar.cardType as Cooldown).cooldown.current !== 0)
-    return interaction.reply({
+    return interaction.editReply({
       content: `\`${balthazar.name}\` is currently on cooldown for ${
         (balthazar.cardType as Cooldown).cooldown.current
       } more ${(balthazar.cardType as Cooldown).cooldown.current > 1 ? "turns" : "turn"}.`,
-      ephemeral: true,
     });
 
-  const userNameField = new TextInputBuilder()
-    .setCustomId("picked_card")
-    .setLabel("Card Code")
-    .setStyle(TextInputStyle.Short);
+  const row = new ActionRowBuilder().addComponents(
+    new ButtonBuilder()
+      .setCustomId("submit_balthazar")
+      .setStyle(ButtonStyle.Primary)
+      .setLabel("Submit")
+  );
 
-  const actionRowOne = new ActionRowBuilder<TextInputBuilder>().addComponents(userNameField);
-
-  const modal = new ModalBuilder()
-    .setCustomId("card_50_pick")
-    .setTitle("Choose a card whose cooldown to reduce")
-    .addComponents(actionRowOne);
-
-  return interaction.showModal(modal);
+  return interaction.editReply({
+    content: "Please Provide the code of the card whose cooldown to reduce:",
+    components: [row as any],
+  });
 };
 
 /**
@@ -1011,7 +1003,7 @@ const handleCard51 = async (card: Item, db: any, interaction: CommandInteraction
 
   const foundCard = inv.getItems().find((e) => e.id === card.id);
   if (!foundCard)
-    return interaction.reply({
+    return interaction.editReply({
       content: `You do not own the card \`${card.name}\`.`,
     });
   card = foundCard;
@@ -1020,7 +1012,7 @@ const handleCard51 = async (card: Item, db: any, interaction: CommandInteraction
   inv.setUserId(interaction.user.id);
   helper.updateInventoryRef(inv);
 
-  return interaction.reply({
+  return interaction.editReply({
     embeds: [
       new EmbedBuilder()
         .setColor("Green")

@@ -46,13 +46,12 @@ const getPVPClaimedState = async (
 
 export const daily: Command = {
   name: "daily",
+  ephemeral: false,
   description: "Trigger your daily cards",
   async execute(client: Client, interaction: CommandInteraction) {
     const db = Database.init();
     const droppool = await helper.fetchDroppool();
     let inv = await helper.fetchInventory(interaction.user.id);
-
-    await interaction.deferReply();
 
     let dailyCardIDs = [23, 29, 35, 44];
     const dailyCards: Array<any> = dailyCardIDs.map((e) => {

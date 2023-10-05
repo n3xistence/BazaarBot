@@ -7,6 +7,7 @@ import AccessValidator from "../Classes/AccessValidator";
 
 export const pay: Command = {
   name: "pay",
+  ephemeral: false,
   description: "Add or remove currencies from a user",
   options: [
     {
@@ -36,9 +37,8 @@ export const pay: Command = {
       interaction.user.id,
     ]);
     if (accessEntry.length === 0 || !new AccessValidator(accessEntry[0].level, "ADMIN").validate())
-      return interaction.reply({
+      return interaction.editReply({
         content: "Invalid Authorisation.",
-        ephemeral: true,
       });
 
     let targetUser = interaction.options.getUser("user");
@@ -48,19 +48,16 @@ export const pay: Command = {
     };
 
     if (!targetUser)
-      return interaction.reply({
+      return interaction.editReply({
         content: "Please mention a valid user.",
-        ephemeral: true,
       });
     if (!currency.type || !["gems", "scrap", "gold"].includes(currency.type))
-      return interaction.reply({
+      return interaction.editReply({
         content: "Please supply a valid currency.",
-        ephemeral: true,
       });
     if (targetUser.bot)
-      return interaction.reply({
+      return interaction.editReply({
         content: "This user is a bot. Please do not send any money to offshore accounts.",
-        ephemeral: true,
       });
 
     let entry: any = await db.query(`SELECT * FROM currency WHERE id=$1`, [targetUser.id]);
@@ -84,7 +81,7 @@ export const pay: Command = {
       ]);
     }
 
-    return interaction.reply({
+    return interaction.editReply({
       embeds: [
         new EmbedBuilder()
           .setColor("Green")

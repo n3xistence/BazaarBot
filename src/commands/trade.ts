@@ -27,6 +27,7 @@ const getConfirmationButtons = () => {
 
 export const trade: Command = {
   name: "trade",
+  ephemeral: false,
   description: "Open a new trade with another player",
   options: [
     {
@@ -40,24 +41,21 @@ export const trade: Command = {
     if (!interaction.isChatInputCommand()) return;
     if (!interaction.guild || !interaction.channel) return;
 
-    return interaction.reply({
+    return interaction.editReply({
       content: `The trade feature is currently unavailable.`,
-      ephemeral: true,
     });
 
     // let inv = await helper.fetchInventory(interaction.user.id);
     // let hasPermission = [...inv.getItems(), ...inv.getActiveItems()].find((e) => e.id === 27);
     // if (!hasPermission)
-    //   return interaction.reply({
+    //   return interaction.editReply({
     //     content: "You can only start trades when you own the card `Trade Pass`.",
-    //     ephemeral: true,
     //   });
 
     // const targetUser = interaction.options.getUser("user");
     // if (!targetUser || targetUser.id === interaction.user.id)
-    //   return interaction.reply({
+    //   return interaction.editReply({
     //     content: `Please mention a valid user`,
-    //     ephemeral: true,
     //   });
 
     // const row: any = getConfirmationButtons();
@@ -92,7 +90,7 @@ export const trade: Command = {
     // const { rows: tradeActive } = await db.query(ownTradesQuery);
 
     // if (tradeActive.length > 0)
-    //   return interaction.reply({
+    //   return interaction.editReply({
     //     embeds: [
     //       new EmbedBuilder()
     //         .setTitle("Trade Error")
@@ -101,10 +99,9 @@ export const trade: Command = {
     //           `You already have a pending trade with ${targetUser} [here](${tradeActive[0].msg_link}).`
     //         ),
     //     ],
-    //     ephemeral: true,
     //   });
 
-    // let msg = await interaction.reply({
+    // let msg = await interaction.editReply({
     //   embeds: [embed],
     //   components: [row],
     //   fetchReply: true,

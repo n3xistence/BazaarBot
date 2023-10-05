@@ -2,6 +2,7 @@ import { Client, EmbedBuilder, ModalSubmitInteraction } from "discord.js";
 import * as helper from "../ext/Helper";
 import { ModalInteraction } from "./IModalInteraction";
 import Item from "../Classes/Item";
+import Cooldown from "../types/Cooldown";
 
 export const card_50_pick: ModalInteraction = {
   modalId: "card_50_pick",
@@ -14,6 +15,16 @@ export const card_50_pick: ModalInteraction = {
     if (!balthazar)
       return interaction.reply({
         content: `You do not own the card \`Balthazar\``,
+        ephemeral: true,
+      });
+
+    if ((balthazar.cardType as Cooldown).cooldown?.current > 0)
+      return interaction.reply({
+        content: `Could not use card \`${
+          balthazar.name
+        }\` because it's currently on cooldown.\nIt is on cooldown for ${
+          (balthazar.cardType as Cooldown).cooldown.current
+        } more ${(balthazar.cardType as Cooldown).cooldown.current > 1 ? "turns" : "turn"}.`,
         ephemeral: true,
       });
 

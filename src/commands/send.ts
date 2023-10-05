@@ -5,6 +5,7 @@ import * as helper from "../ext/Helper";
 
 export const send: Command = {
   name: "send",
+  ephemeral: false,
   description: "Send cards to another user",
   options: [
     {
@@ -33,20 +34,17 @@ export const send: Command = {
     let targetUser = interaction.options.getUser("user");
     let amount = interaction.options.getNumber("amount") ?? 1;
     if (amount <= 0)
-      return interaction.reply({
+      return interaction.editReply({
         content: "Please provide a valid amount.",
-        ephemeral: true,
       });
 
     if (!targetUser)
-      return interaction.reply({
+      return interaction.editReply({
         content: "Please mention a valid user.",
-        ephemeral: true,
       });
     if (targetUser.bot)
-      return interaction.reply({
+      return interaction.editReply({
         content: "This user is a bot. Please do not send your cards to offshore accounts.",
-        ephemeral: true,
       });
 
     let inv = await helper.fetchInventory(interaction.user.id);
@@ -54,28 +52,24 @@ export const send: Command = {
 
     let hasPermission = [...inv.getItems(), ...inv.getActiveItems()].find((e) => e.id === 21);
     if (!hasPermission)
-      return interaction.reply({
+      return interaction.editReply({
         content: "You can only send cards to other users when you own the card `Player Market`.",
-        ephemeral: true,
       });
 
     let itemToSend = inv.getActiveItems().find((e) => e.code === cardCode);
     if (itemToSend && itemToSend.cardType !== "passive")
-      return interaction.reply({
+      return interaction.editReply({
         content: "You can only send cards from your inventory. Please unequip your card.",
-        ephemeral: true,
       });
 
     let card = [...inv.getItems(), ...inv.getActiveItems()].find((e) => e.code === cardCode);
     if (!card)
-      return interaction.reply({
+      return interaction.editReply({
         content: "You do not own this card.",
-        ephemeral: true,
       });
     if (card.id === 21)
-      return interaction.reply({
+      return interaction.editReply({
         content: "This card cannot be sent.",
-        ephemeral: true,
       });
 
     inv.removeItem(card);
@@ -85,7 +79,7 @@ export const send: Command = {
     targetInv.addItem(card);
     await helper.fetchInventory(targetUser.id);
 
-    return interaction.reply({
+    return interaction.editReply({
       embeds: [
         new EmbedBuilder()
           .setTitle("Card Sent")

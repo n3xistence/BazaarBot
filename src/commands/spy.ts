@@ -16,6 +16,7 @@ const extractItemsFromInventory = (inv: Inventory) => [
 ];
 export const spy: Command = {
   name: "spy",
+  ephemeral: true,
   description: "Spy on another player's inventory",
   options: [
     {
@@ -28,18 +29,16 @@ export const spy: Command = {
   async execute(client: Client, interaction: CommandInteraction) {
     let targetUser = interaction.options.getUser("user");
     if (!targetUser || targetUser.id === interaction.user.id)
-      return interaction.reply({
+      return interaction.editReply({
         content: "Please mention a valid user.",
-        ephemeral: true,
       });
 
     const db = Database.init();
     const ownInv = await helper.fetchInventory(interaction.user.id);
     const hasSpyglass = ownInv.getActiveItems().find((e) => e.id === 26);
     if (!hasSpyglass)
-      return interaction.reply({
+      return interaction.editReply({
         content: "You can only use this command when you own the card `Spyglass`.",
-        ephemeral: true,
       });
 
     let inv = await helper.fetchInventory(targetUser.id);

@@ -18,6 +18,7 @@ const findInDroppool = (droppool: Pack[], cardCode: string) => {
 
 export const give: Command = {
   name: "give",
+  ephemeral: false,
   description: "Give a card to a user",
   options: [
     {
@@ -47,9 +48,8 @@ export const give: Command = {
       interaction.user.id,
     ]);
     if (accessEntry.length === 0 || !new AccessValidator(accessEntry[0].level, "ADMIN").validate())
-      return interaction.reply({
+      return interaction.editReply({
         content: "Invalid Authorisation.",
-        ephemeral: true,
       });
 
     const droppool = await helper.fetchDroppool();
@@ -58,32 +58,26 @@ export const give: Command = {
     let targetUser = interaction.options.getUser("user");
     let amount = interaction.options.getNumber("amount") ?? 1;
     if (!targetUser)
-      return interaction.reply({
+      return interaction.editReply({
         content: "Please mention a valid user.",
-        ephemeral: true,
       });
     if (targetUser.bot)
-      return interaction.reply({
+      return interaction.editReply({
         content: "This user is a bot. Please do not send any cards to offshore accounts.",
-        ephemeral: true,
       });
 
     if (amount === 0)
-      return interaction.reply({
+      return interaction.editReply({
         content: "Amount must not be zero.",
-        ephemeral: true,
       });
 
     let inv = await helper.fetchInventory(targetUser.id);
 
     const card = findInDroppool(droppool, cardCode ?? "");
     if (!card)
-      return interaction.reply({
+      return interaction.editReply({
         content: `There is no Card with the code \`${cardCode}\`.`,
-        ephemeral: true,
       });
-
-    await interaction.deferReply();
 
     card.amount = amount;
     if (amount > 0) inv.addItem(card);

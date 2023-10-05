@@ -2,16 +2,14 @@ import { Client, EmbedBuilder, CommandInteraction } from "discord.js";
 import { Command } from "./ICommand";
 const { version } = require("../../package.json");
 
-import * as helper from "../ext/Helper";
-
 export const info: Command = {
   name: "info",
+  ephemeral: false,
   description: "Shows info",
   async execute(client: Client, interaction: CommandInteraction) {
     if (!interaction.guild)
-      return interaction.reply({
+      return interaction.editReply({
         content: "Invalid Request.",
-        ephemeral: true,
       });
 
     let owner = await interaction.guild.fetchOwner();
@@ -41,6 +39,6 @@ export const info: Command = {
         },
         { name: "**Version**", value: `${version}`, inline: true }
       );
-    interaction.reply({ embeds: [sEmbed] });
+    interaction.editReply({ embeds: [sEmbed] });
   },
 };

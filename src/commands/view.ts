@@ -30,6 +30,7 @@ const getAllItems = (data: any) => {
 
 export const view: Command = {
   name: "view",
+  ephemeral: false,
   description: "View a card",
   options: [
     {
@@ -49,12 +50,9 @@ export const view: Command = {
     );
 
     if (!card)
-      return interaction.reply({
+      return interaction.editReply({
         content: `You do not own this card.`,
-        ephemeral: true,
       });
-
-    await interaction.deferReply();
 
     let rarity = { emote: "", color: "" };
     switch (card.rarity.toLowerCase()) {

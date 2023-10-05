@@ -54,6 +54,7 @@ const curseText = (text: string) => {
 
 export const task: Command = {
   name: "task",
+  ephemeral: true,
   description: "Starts a new task",
   options: [
     {
@@ -95,9 +96,8 @@ export const task: Command = {
       interaction.user.id,
     ]);
     if (accessEntry.length === 0 || !new AccessValidator(accessEntry[0].level, "ADMIN").validate())
-      return interaction.reply({
+      return interaction.editReply({
         content: "Invalid Authorisation.",
-        ephemeral: true,
       });
 
     const currentTasks = await db.query(`SELECT * FROM Bazaar`);
@@ -105,9 +105,8 @@ export const task: Command = {
     let activeTasks = await db.query(`SELECT * FROM Bazaar WHERE active='true'`);
 
     if (activeTasks.rows.length > 0)
-      return interaction.reply({
+      return interaction.editReply({
         content: `There is already an active task.`,
-        ephemeral: true,
       });
 
     const task = {
@@ -126,11 +125,10 @@ export const task: Command = {
 
     const validTypes = ["gold", "gems"];
     if (!validTypes.includes(task.type ?? ""))
-      return interaction.reply({
+      return interaction.editReply({
         content: `Invalid task type.\nTask must be of one of the following types:\n>>> ${validTypes.join(
           "\n"
         )}`,
-        ephemeral: true,
       });
 
     const cursed = {
@@ -160,9 +158,8 @@ export const task: Command = {
     );
 
     if (!interaction.channel)
-      return interaction.reply({
+      return interaction.editReply({
         content: "There has been an issue fetching the channel.",
-        ephemeral: true,
       });
 
     let msg = await interaction.channel.send({
@@ -185,9 +182,8 @@ export const task: Command = {
       task.notes,
     ]);
 
-    return await interaction.reply({
+    return await interaction.editReply({
       content: `Successfully started task ${task.id}.`,
-      ephemeral: true,
     });
   },
 };

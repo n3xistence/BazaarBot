@@ -8,6 +8,7 @@ import Inventory from "../Classes/Inventory";
 
 export const sell: Command = {
   name: "sell",
+  ephemeral: false,
   description: "Sell a card for gems",
   options: [
     {
@@ -35,29 +36,25 @@ export const sell: Command = {
 
     let hasMarket = [...inv.getActiveItems(), ...inv.getItems()].find((e) => e.id === 22);
     if (!hasMarket)
-      return interaction.reply({
+      return interaction.editReply({
         content: `You must own the card \`Merchant\` to sell cards.`,
-        ephemeral: true,
       });
 
     let card = inv.getActiveItems().find((e) => e.code === cardCode);
     if (!card) card = inv.getItems().find((e) => e.code === cardCode);
     if (!card)
-      return interaction.reply({
+      return interaction.editReply({
         content: `You do not own this card.`,
-        ephemeral: true,
       });
 
     if (sellAmount <= 0)
-      return interaction.reply({
+      return interaction.editReply({
         content: `Amount must be a numerical value greater than 0.`,
-        ephemeral: true,
       });
 
     if (sellAmount > card.amount)
-      return interaction.reply({
+      return interaction.editReply({
         content: `You cannot scrap more duplicates than you own.`,
-        ephemeral: true,
       });
 
     let gemYield = 0;
@@ -92,7 +89,7 @@ export const sell: Command = {
     helper.updateInventoryRef(inv);
     helper.updateCardsLiquidated(interaction.user, db, sellAmount);
 
-    return interaction.reply({
+    return interaction.editReply({
       embeds: [
         new EmbedBuilder()
           .setTitle("Cards Sold")

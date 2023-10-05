@@ -12,6 +12,7 @@ const getKeyByValue = (object: { [key: string]: any }, value: number) => {
 
 export const access: Command = {
   name: "access",
+  ephemeral: true,
   description: "Edit a user's Access Level",
   options: [
     {
@@ -62,31 +63,27 @@ export const access: Command = {
       interaction.user.id,
     ]);
     if (accessEntry.length === 0 || !new AccessValidator(accessEntry[0].level, "ADMIN").validate())
-      return interaction.reply({
+      return interaction.editReply({
         content: "Invalid Authorisation.",
-        ephemeral: true,
       });
 
     const user = interaction.options.getUser("user");
     if (!user)
-      return interaction.reply({
+      return interaction.editReply({
         content: "Please mention a valid user.",
-        ephemeral: true,
       });
 
     const subCommand: string = interaction.options.getSubcommand();
     const level = interaction.options.getString("level")?.toUpperCase();
     if (!level)
-      return interaction.reply({
+      return interaction.editReply({
         content: "You must specify a valid Access Level",
-        ephemeral: true,
       });
 
     const accessLevel = ACCESS_LEVEL[level];
     if (!accessLevel)
-      return interaction.reply({
+      return interaction.editReply({
         content: `${level} is not a valid Access Level.`,
-        ephemeral: true,
       });
 
     if (subCommand === "grant") {
@@ -95,7 +92,7 @@ export const access: Command = {
         accessLevel,
       ]);
 
-      return interaction.reply({
+      return interaction.editReply({
         embeds: [
           new EmbedBuilder()
             .setColor("Green")
@@ -116,7 +113,7 @@ export const access: Command = {
         .catch((_) => ({ rows: [] }));
 
       if (res.rows.length > 0 && res.rows[0].access_level >= 0)
-        return interaction.reply({
+        return interaction.editReply({
           embeds: [
             new EmbedBuilder()
               .setColor("Red")
@@ -134,7 +131,7 @@ export const access: Command = {
           ],
         });
 
-      return interaction.reply({
+      return interaction.editReply({
         embeds: [
           new EmbedBuilder()
             .setColor("Green")

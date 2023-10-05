@@ -3,5 +3,6 @@ import { CommandInteraction, ChatInputApplicationCommandData, Client } from "dis
 export interface Command extends ChatInputApplicationCommandData {
   options?: Array<any>;
   requiredLevel?: string;
+  ephemeral: boolean;
   execute: (client: Client, interaction: CommandInteraction) => void;
 }
