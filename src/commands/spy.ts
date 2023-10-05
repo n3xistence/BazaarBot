@@ -57,8 +57,9 @@ export const spy: Command = {
       targetUser.id,
     ]);
 
-    let stats: unknown = await db.query(`SELECT * FROM BazaarStats WHERE id=$1`, [targetUser.id]);
-    if (!stats) stats = { energy: 0 };
+    const statsQuery = `SELECT * FROM BazaarStats WHERE id=$1`;
+    const stats: number =
+      ((await db.query(statsQuery, [interaction.user.id])).rows[0] as BazaarStats)?.energy ?? 0;
 
     if (data) {
       balance.gems = data.rows[0].gems.toLocaleString();
