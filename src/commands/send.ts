@@ -77,7 +77,7 @@ export const send: Command = {
 
     card.amount = amount;
     targetInv.addItem(card);
-    await helper.fetchInventory(targetUser.id);
+    helper.updateInventoryRef(targetInv);
 
     return interaction.editReply({
       embeds: [
