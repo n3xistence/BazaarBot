@@ -279,71 +279,9 @@ const fetchInventory = async (userID: string): Promise<Inventory> => {
 
 const updateAllInventories = async (inventories: Array<Inventory>): Promise<any> => {
   return new Promise(async (resolve, reject) => {
-    const db = Database.init();
-
     const allPromises: Array<Promise<any>> = [];
     for (const inventory of inventories) {
-      const { activeItems, list, packs } = inventory;
-
-      for (const item of activeItems) {
-        allPromises.push(
-          db.query(
-            /* SQL */
-            `
-            INSERT INTO inventory(id, cid, pid, active, cooldown_current, amount, is_card)
-            VALUES(\'${inventory.userId}\', ${item.id}, '-1', 'true', ${
-              !item.cardType || typeof item.cardType === "string"
-                ? null
-                : item.cardType.cooldown.current
-            }, ${item.amount} ,'true')
-            ON CONFLICT (id, pid, cid)
-            DO UPDATE SET amount=${item.amount}, cooldown_current=${
-              !item.cardType || typeof item.cardType === "string"
-                ? null
-                : item.cardType.cooldown.current
-            }
-            `
-          )
-        );
-      }
-
-      for (const item of list) {
-        allPromises.push(
-          db.query(
-            /* SQL */
-            `
-            INSERT INTO inventory(id, cid, pid, active, cooldown_current, amount, is_card)
-            VALUES(\'${inventory.userId}\', ${item.id}, '-1', 'false', ${
-              !item.cardType || typeof item.cardType === "string"
-                ? null
-                : item.cardType.cooldown.current
-            }, ${item.amount}, 'true')
-            ON CONFLICT (id, pid, cid)
-            DO UPDATE SET amount=${item.amount}, cooldown_current=${
-              !item.cardType || typeof item.cardType === "string"
-                ? null
-                : item.cardType.cooldown.current
-            }
-            `
-          )
-        );
-      }
-
-      for (const pack of packs) {
-        allPromises.push(
-          db.query(
-            /* SQL */
-            `
-            INSERT INTO inventory(id, cid, pid, amount, is_card)
-            VALUES(
-              \'${inventory.userId}\', -1, \'${pack.code ?? pack.name}\', ${pack.amount}, 'false'
-            )
-            ON CONFLICT (id, pid, cid)
-            DO UPDATE SET amount=${pack.amount}
-            `
-          )
-        );
-      }
+      allPromises.push(updateInventoryRef(inventory));
     }
 
     Promise.all(allPromises).then(resolve).catch(reject);
@@ -356,7 +294,6 @@ const updateInventoryRef = async (inventory: Inventory): Promise<any> => {
 
     const allPromises: Array<Promise<any>> = [];
 
-    // Create an array of tuples to be used in the query
     const tuples: Array<any> = [
       ...inventory.getActiveItems(),
       ...inventory.getItems(),
@@ -364,11 +301,13 @@ const updateInventoryRef = async (inventory: Inventory): Promise<any> => {
     ].map((item: any) => `('${inventory.userId}', ${item.id ?? -1}, '${item.code ?? "-1"}')`);
 
     if (tuples.length > 0) {
-      // Create the query
-      const query = `
-      DELETE FROM inventory
-      WHERE id=\'${inventory.userId}\' AND (id, cid, pid) NOT IN (${tuples.join(", ")})
-    `;
+      const query =
+        /* SQL */
+        `
+        DELETE FROM inventory
+        WHERE id=\'${inventory.userId}\' 
+        AND (id, cid, pid) NOT IN (${tuples.join(", ")})
+      `;
 
       allPromises.push(db.query(query));
     }
