@@ -199,7 +199,7 @@ const fetchAllInventories = async (): Promise<Array<Inventory>> => {
 
       if (rows.length === 0) resolve([]);
 
-      const users: Array<string> = [...new Set(...rows.map((e) => e.id))] as string[];
+      const users: Array<string> = [...new Set(rows.map((e) => e.id))] as string[];
 
       const allPromises: Array<Promise<any>> = [];
       for (const userID of users) {
