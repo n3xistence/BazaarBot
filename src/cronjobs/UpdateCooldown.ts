@@ -1,19 +1,20 @@
 import Logger from "../ext/Logger";
-import Inventory from "../Classes/Inventory";
-import * as helper from "../ext/Helper";
+import * as Database from "../Database";
 
 export const UpdateCooldown = async () => {
   try {
-    let inventories = await helper.fetchAllInventories();
+    const db = Database.init();
+    db.query(
+      /* SQL */
+      `UPDATE inventory
+			 SET cooldown_current = cooldown_current -1
+			 WHERE 
+        NOT cooldown_current is NULL 
+        AND cooldown_current > 0
+      `
+    );
 
-    for (let i = 0; i < inventories.length; i++) {
-      let inv: Inventory = await helper.fetchInventory(inventories[i].userId as string);
-      inv.moveTurn();
-
-      helper.updateInventoryRef(inv);
-    }
-
-    Logger.log("success", `Updated Cooldown for ${inventories.length} users.`);
+    Logger.log("success", `Updated Cooldown.`);
   } catch (e) {
     Logger.log("error", "Error updating Cooldown:");
     console.error(e);
